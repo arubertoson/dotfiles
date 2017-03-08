@@ -1,0 +1,25 @@
+alias dots='git --git-dir=$HOME/.dots.git --work-tree=$HOME'
+alias dots-ls='dots ls-files'
+alias dots-ls-untracked='dots status -u .'
+
+
+alias launch.wm='$X11_HOME/launch'
+alias launch.xvnc='$X11_HOME/xvnc'
+alias launch.compton='bash -c "$LOCAL_ETC/compton/launch"'
+alias launch.sxhkd='bash -c "$LOCAL_ETC/sxhkd/launch &"'
+alias launch.dunst='bash -c "$LOCAL_ETC/dunst/launch &"'
+
+
+alias reboot="sudo reboot"
+alias poweroff="sudo poweroff"
+alias halt="sudo halt" # ??
+
+# Default command flags
+alias mv="mv -v"
+alias ln="ln -v"
+alias cp="cp -v"
+alias rm="rm -v"
+alias ls="ls --group-directories-first --dereference-command-line-symlink-to-dir --color=auto"
+alias ll="ls --dereference-command-line-symlink-to-dir -lh"
+alias l="ls -la --dereference-command-line-symlink-to-dir"
+alias info='info --vi-keys --init-file=${XDG_CONFIG_HOME}/infokey'
