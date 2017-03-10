@@ -18,7 +18,10 @@ cursor_blink = on
 # "block", "underline" or "ibeam"
 cursor_shape = block
 
-font=menlo, 10
+# font Source Sans Pro
+# font Fira Mono
+# font Droid Sans Mono
+font=Source Sans Pro, 14
 
 # one dark
 [colors]
