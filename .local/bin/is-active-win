@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+function main {
+  local procname=$(cat \
+    /proc/$(xdotool getwindowpid \
+          $(xdotool getwindowfocus))/comm)
+
+  [ "$procname" == "$1" ]
+}
+
+main "$@"
