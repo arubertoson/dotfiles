@@ -1,5 +1,5 @@
 # 
-# #zplug "ssh0/dot", use:"*.sh", hook-load:"source $ZPLUG_CONFIG_DIR/plugins/dot.zsh"
+zplug "ssh0/dot", use:"*.sh", hook-load:"source $ZPLUG_CONFIG_DIR/plugins/dot.zsh"
 # 
 # # Prezto
 zplug "modules/environment", from:prezto
