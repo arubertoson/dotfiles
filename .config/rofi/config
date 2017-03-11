@@ -1,0 +1,71 @@
+! "Enabled modi" Set from: Default
+! rofi.modi: window,run,ssh
+rofi.combi-modi: window,run
+
+!
+! Style 
+!
+
+! Border width
+rofi.bw: 2
+rofi.width: 35 
+rofi.lines: 10
+
+rofi.padding: 2
+rofi.line-margin: 0
+rofi.line-padding: 2
+
+rofi.location: 0
+rofi.yoffset: 0
+rofi.xoffset: 0
+
+!
+! General
+!
+
+rofi.font: Source Sans Pro 14
+! rofi.dpi: 92
+
+rofi.fullscreen: false 
+rofi.sidebar-mode: false
+rofi.hide-scrollbar: true
+rofi.show-match: true
+rofi.click-to-exit: true
+rofi.threads: 0
+rofi.cycle: true
+rofi.disable-history: false
+rofi.case-sensitive: false
+rofi.levenshtein-sort: false
+
+! "Command executed on accep-entry-custom for window modus" Set from: Default
+! rofi.window-command: xkill -id {window}
+
+!
+! Filters
+! 
+
+! Normal, regex, glob, fuzzy
+rofi.matching: glob
+rofi.tokenize: true
+! "Pre-set filter" Set from: Default
+! rofi.filter:                         
+
+!
+! Colors
+!
+
+! rofi.fake-transparency: true
+! rofi.fake-background: background
+! none, dash, solid
+rofi.separator-style: solid 
+
+! row-one, row-one-text, row-two, 
+! active-line, active-line-text
+rofi.color-normal: #282c34,\
+		   #abb2bf,\
+		   #282c34,\
+		   #51afef,\
+		   #262626
+! background, border
+rofi.color-window: #282c34,\
+		   #181e26

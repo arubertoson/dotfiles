@@ -1,0 +1,77 @@
+# system
+git
+rsync
+mlocate
+ripgrep
+the_silver_searcher
+the_platinum_searcher
+wget
+htop
+rofi
+lnav # reading logs
+mdlt # calculator
+hub
+
+# fonts
+font-fira-otf
+font-hack-otf
+font-symbola
+
+# Font Icons
+font-awesome 
+material-font 
+siji 
+
+
+# C++
+# musl
+gcc
+boost-devel
+cmake
+cppcheck
+llvm
+clang
+clang-analyzer
+clang-tools-extra
+
+# Python
+python
+python-pip
+python-devel
+python-neovim
+python
+
+# javascript
+nodejs
+jq
+
+# ruby
+ruby
+
+# Apps
+lastpass-cli
+syncthing
+google-chrome
+VLC / smplayer -> mpv 
+youtube-dl
+krita
+gimp
+blender
+inkscape
+krusader
+
+
+# X
+# gpm # mouse control
+synergy # synergy for windows
+bspwm
+sxhkd
+compton
+dunst
+xorg-server
+xorg-xinit
+xorg-server-utils
+xdotool
+xclip
+
+
