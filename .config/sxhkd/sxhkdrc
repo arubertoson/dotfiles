@@ -6,9 +6,15 @@
 super + Return
 	termite
 
-# program launcher
-super + space
-	dmenu_run
+# Rofi application launcher
+ctrl + {space, shift + space}
+	rofi -show {run,window}
+
+# tester
+ctrl + {j,k}
+  is-active-win termite && \
+    xdotool keyup j k key shift+Page_{Down,Up}
+
 
 # make sxhkd reload its configuration files:
 super + Escape

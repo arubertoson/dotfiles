@@ -29,7 +29,8 @@ font=Source Sans Pro, 14
 # special
 foreground      = #abb2bf
 foreground_bold = #abb2bf
-cursor          =
+cursor          = #51afef
+cursor_background = #282c34
 background      = #282c34
 
 # black
