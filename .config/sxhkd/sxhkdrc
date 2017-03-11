@@ -7,13 +7,18 @@ super + Return
 	termite
 
 # Rofi application launcher
-ctrl + {space, shift + space}
+ctrl + {space,w}
 	rofi -show {run,window}
 
-# tester
+# Termite convinience scrolling
 ctrl + {j,k}
   is-active-win termite && \
     xdotool keyup j k key shift+Page_{Down,Up}
+
+# One line Scrolling
+ctrl + {e,y}
+  is-active-win termite && \
+    xdotool keyup e y key ctrl+shift+{Down,Up}
 
 
 # make sxhkd reload its configuration files:
