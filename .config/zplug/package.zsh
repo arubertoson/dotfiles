@@ -29,7 +29,6 @@ zplug "srijanshetty/zsh-pip-completion"
 # Shell 
 #
 # zplug "momo-lab/zsh-abbrev-alias"
-zplug "supercrabtree/k"
 zplug "zsh-users/zsh-autosuggestions"
 zplug "zsh-users/zsh-syntax-highlighting", defer:2
 zplug "hlissner/zsh-autopair", \

@@ -21,7 +21,7 @@ cursor_shape = block
 # font Source Sans Pro
 # font Fira Mono
 # font Droid Sans Mono
-font=Source Sans Pro, 14
+font=Source Code Pro, 14
 
 # one dark
 [colors]
