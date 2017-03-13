@@ -12,5 +12,5 @@ export ZPLUG_CACHE_DIR="${XDG_CACHE_HOME}/zplug"
 if [[ -d $ZPLUG_HOME ]]; then
   source $ZPLUG_HOME/init.zsh
   zplug check || zplug install
-  zplug load --verbose
+  zplug load # --verbose
 fi
