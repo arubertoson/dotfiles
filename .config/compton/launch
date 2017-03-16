@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+config="${1:-$XDG_CONFIG_HOME/compton/compton.conf}"
+log="$2:-$XDG_CACHE_HOME/compton/log}"
+
+killall -q compton &> /dev/null
+
+exec compton -b --config "$config" --logpath "$log" --respect-prop-shadow

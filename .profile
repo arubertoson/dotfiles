@@ -13,15 +13,14 @@ export XDG_RUNTIME_DIR="${HOME}/.local/run"
 export XDG_CACHE_HOME="${HOME}/.cache"
 export XDG_CONFIG_HOME="${HOME}/.config"
 
-export SVDIR="${LOCAL_VAR}/service"
-
-export BSPWM_STATE="${XDG_CACHE_HOME}/bspwm/state.json"
-export BSPWM_FIFO="${XDG_CACHE_HOME}/bspwm/wm_state"
-
-export vim="nvim"
+# TODO: Implement save state (jaagr/dots)
+#export BSPWM_STATE="${XDG_CACHE_HOME}/bspwm/state.json"
+#export BSPWM_FIFO="${XDG_CACHE_HOME}/bspwm/wm_state"
 
 export LANG="en_US.UTF-8"
 # export BROWSER=
+
+export vim="nvim"
 export EDITOR="nvim"
 export VISUAL="nvim"
 

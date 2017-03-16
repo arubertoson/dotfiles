@@ -10,16 +10,10 @@ super + Return
 ctrl + {space,w}
 	rofi -show {run,window}
 
-# Termite convinience scrolling
-ctrl + {j,k}
+# Scrolling mode for terminal
+super + ctrl + u : {u,d,j,k}
   is-active-win termite && \
-    xdotool keyup j k key shift+Page_{Down,Up}
-
-# One line Scrolling
-ctrl + {e,y}
-  is-active-win termite && \
-    xdotool keyup e y key ctrl+shift+{Down,Up}
-
+    xdotool keyup u d j k key ctrl+shift+{Page_Up,Page_Down,Down,Up}
 
 # make sxhkd reload its configuration files:
 super + Escape
@@ -61,13 +55,32 @@ super + {t,shift + t,s,f}
 super + ctrl + {x,y,z}
 	bspc node -g {locked,sticky,private}
 
+
 #
 # focus/swap
 #
 
-# focus the node in the given direction
-super + {_,shift + }{h,j,k,l}
-	bspc node -{f,s} {west,south,north,east}
+# Focus node
+# If no window exist, target monitor/desktop instead
+super + k
+  bspc node -f north || bspc monitor -f north
+super + j
+  bspc node -f south || bspc monitor -f south
+super + h
+  bspc node -f west || bspc monitor -f west || bspc desktop -f west
+super + l
+  bspc node -f east || bspc monitor -f east || bspc desktop -f east
+
+# Swap node
+# If no node exist, send node to monitor instead
+super + shift + h
+  if ! bspc node -s west.local; then bspc node -m west && bspc node $(bspc query -N -n last) -f; fi
+super + shift + l
+  if ! bspc node -s east.local; then bspc node -m east && bspc node $(bspc query -N -n last) -f; fi
+super + shift + k
+  if ! bspc node -s north.local; then bspc node -m north && bspc node $(bspc query -N -n last) -f; fi
+super + shift + j
+  if ! bspc node -s south.local; then bspc node -m south && bspc node $(bspc query -N -n last) -f; fi
 
 # focus the node for the given path jump
 super + {p,b,comma,period}
@@ -118,6 +131,16 @@ super + ctrl + shift + space
 #
 # move/resize
 #
+
+# Resize current window
+super + r : {_,shift + ,super + ,shift + super + }h
+  val={200,100,50,10}; bspc node @west -r -${val} || bspc node @east -r -${val}
+super + r : {_,shift + ,super + ,shift + super + }l
+  val={200,100,50,10}; bspc node @west -r +${val} || bspc node @east -r +${val}
+super + r : {_,shift + ,super + ,shift + super + }k
+  val={200,100,50,10}; bspc node @north -r -${val} || bspc node @south -r -${val}
+super + r : {_,shift + ,super + ,shift + super + }j
+  val={200,100,50,10}; bspc node @north -r +${val} || bspc node @south -r +${val}
 
 # expand a window by moving one of its side outward
 super + alt + {h,j,k,l}
