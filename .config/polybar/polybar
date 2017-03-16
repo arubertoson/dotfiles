@@ -5,6 +5,7 @@ white = #DFDFDF
 grey = #525252
 grey-d = #3D3D48
 magenta = #c678dd
+orange = #da8548
 red = #ff6c6b
 blue = #51afef
 green = #98be65
@@ -194,29 +195,24 @@ label-open = %{T7}%{T-}
 label-close = %{T7}%{T-}
 label-separator = "  |  "
 
+#TODO: Logout Command
 menu-0-0 = Logout
 menu-0-0-foreground = ${colors.blue}
 menu-0-0-exec = bspc quit -1
 menu-0-1 = Reboot
-menu-0-1-foreground = ${colors.magenta}
-menu-0-1-exec = menu_open-1
+menu-0-1-foreground = ${colors.orange}
+menu-0-1-exec = menu-open-1
 menu-0-2 = Power off
 menu-0-2-foreground = ${colors.red}
-menu-0-2-exec = menu_open-2
+menu-0-2-exec = menu-open-2
 
-menu-1-0 = Cancel
-menu-1-0-foreground = #fba922
-menu-1-0-exec = menu_open-0
-menu-1-1 = Reboot
-menu-1-1-foreground = #fba922
-menu-1-1-exec = sudo reboot
+menu-1-0 = Confirm (Reboot)
+menu-1-0-foreground = ${colors.red}
+menu-1-0-exec = sudo reboot
 
-menu-2-0 = Power off
-menu-2-0-foreground = #fba922
+menu-2-0 = Confirm (Power Off)
+menu-2-0-foreground = ${colors.red}
 menu-2-0-exec = sudo poweroff
-menu-2-1 = Cancel
-menu-2-1-foreground = #fba922
-menu-2-1-exec = menu_open-0
 
 [module/volume]
 type = internal/volume
