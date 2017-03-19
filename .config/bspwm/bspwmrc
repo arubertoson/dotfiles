@@ -26,8 +26,8 @@ bspc config pointer_follows_focus true
 #bspc config pointer_follows_monitor true
 bspc config remove_disabled_monitors false
 
-bspc monitor DVI-D-1 -d term code WS.3 WS.4
-bspc monitor DVI-I-1 -d web WS.2 WS.3 music
+bspc monitor $EXTERNAL_MONITOR -d term code WS.3 WS.4
+bspc monitor $PRIMARY_MONITOR -d web WS.2 WS.3 music
 
 #bspc rule -a Gimp desktop='^8' state=floating follow=on
 bspc rule -a emacs desktop='^3' state=floating
@@ -38,3 +38,13 @@ bspc rule -a termite state=floating
 # Set Wallpaper with feh
 # Start unclutter
 # Change cursor to pointer
+# Polybar
+polybar_config="$XDG_CONFIG_HOME/polybar/config"
+polybars=(top)
+if [[ ! -z "$EXTERNAL_MONITOR" ]]; then
+  polybars+=(external)
+fi
+
+"${XDG_CONFIG_HOME}"/polybar/launch \
+  "${polybar_config}" \
+  "${polybars[*]}"
