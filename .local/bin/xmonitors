@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+export PRIMARY_MONITOR="DVI-I"
+export EXTERNAL_MONITOR="DVI-D"
+
+#xrandr -q | grep -q "$internal" 
+#xrandr -
+
+PRIMARY_MONITOR=$(xrandr | grep " connected" | grep -oP "${PRIMARY_MONITOR}[^\s]+")
+EXTERNAL_MONITOR=$(xrandr | grep " connected" | grep -oP "${EXTERNAL_MONITOR}[^\s]+")
+
+echo $PRIMARY_MONITOR
+echo $EXTERNAL_MONITOR
