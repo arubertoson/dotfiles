@@ -1,1 +1,1 @@
-/home/vagrant/.profile
+../../.profile

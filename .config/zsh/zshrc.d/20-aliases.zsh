@@ -1,1 +1,1 @@
-/home/vagrant/.aliases
+../../../.aliases

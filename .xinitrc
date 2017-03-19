@@ -45,6 +45,10 @@ compton -bcCGF \
 --paint-on-overlay \
 --sw-opti &
 
+
+# Fix screen positions, get screen info from xrandr
+xrandr --output DVI-D-1 --auto --pos 0x0 \
+       --output DVI-I-1 --auto --pos 1920x0
 # Set cursor to pointer instead of x
 xsetroot -cursor_name left_ptr
 # Hide Mouse

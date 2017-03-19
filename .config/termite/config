@@ -21,7 +21,7 @@ cursor_shape = block
 # font Source Sans Pro
 # font Fira Mono
 # font Droid Sans Mono
-font=Source Code Pro, 14
+font=DejaVu Sans Mono, 12
 
 # one dark
 [colors]
@@ -64,5 +64,3 @@ color14 = #3c909b
 # white
 color7  = #abb2bf
 color15 = #828997
-
-# vim: ft=dosini cms=#%s
