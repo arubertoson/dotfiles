@@ -24,4 +24,6 @@ export vim="nvim"
 export EDITOR="nvim"
 export VISUAL="nvim"
 
-export PATH="${PATH}:${LOCAL_BIN}"
+export NPM_BIN="${LOCAL_SHARE}/npm/bin"
+
+export PATH="${PATH}:${LOCAL_BIN}:${NPM_BIN}"

@@ -1,60 +1,57 @@
-# TODO: Compton launch file
-#       The current state of this file is a mess and needs proper refactor
-#       whihc will be performed on a new system.
+#
+# Utils
+#
+# Fonts
+# xset +fp $HOME/.fonts &
+# xset fp rehash &
+# fc-cache -fv &
 
-# Reference Code for refactor {{
-# compton -bcCGf \
-# --config /dev/null \
-# --backend xr_glx_hybrid \
-# -i 1.0 --inactive-dim 0.2 \
-
-#compton -b --config ${HOME}/.config/compton/compton.conf
-#compton -b --config ${HOME}/.config/compton/compton_default.conf
-
-#--xrender-sync \
-#--vsync opengl-swc \
-# compton -bcCGf \
-#    --config /dev/null \
-#    --backend xr_glx_hybrid \
-#    --glx-no-stencil \
-#    --glx-no-rebind-pixmap \
-#    --glx-swap-method undefined \
-#    --xrender-sync-fence \
-#    --vsync drm \
-#    --vsync-use-glfinish --dbe \
-#    --unredir-if-possible \
-#    --paint-on-overlay \
-#    --use-ewmh-active-win \
-#    --sw-opti \
-#    --mark-wmwin-focused \
-#    --inactive-dim 0.2 \
-#    --inactive-dim-fixed &
-# compton -b &
-# end of reference code }}}
-
-compton -bcCGF \
---backend xr_glx_hybrid \
---glx-no-stencil \
---glx-no-rebind-pixmap \
---glx-swap-method undefined \
---xrender-sync \
---xrender-sync-fence \
---vsync drm \
---vsync-use-glfinish \
---unredir-if-possible \
---paint-on-overlay \
---sw-opti &
+# Powersaving
+# xset s off &
+# xset s noblank &
+# xset s noexpose &
+# xset c on &
+# xset -dpms &
+# Wallpaper
 
 
-# Fix screen positions, get screen info from xrandr
+# Window compositor
+compton -b \
+  --config /dev/null \
+  --backend glx \
+  --glx-no-stencil \
+  --glx-no-rebind-pixmap \
+  --glx-swap-method 3 \
+  --xrender-sync \
+  --xrender-sync-fence \
+  --vsync opengl-swc \
+  --vsync-use-glfinish \
+  --unredir-if-possible \
+  --paint-on-overlay \
+  --sw-opti &
+
+# fix monitors
+# NOTE: On monitor weirdness look here!
 source xmonitors
 xrandr --output $EXTERNAL_MONITOR --mode 1920x1080 --pos 0x0 \
        --output $PRIMARY_MONITOR --mode 1920x1200 --pos 1920x0
+feh --bg-scale "$LOCAL_ETC/wallpapers/gradient.jpg"
 
-# Set cursor to pointer instead of x 
+# 
+# Mouse
+#
+# Change cursor look & autohide cursor
 xsetroot -cursor_name left_ptr
-# Hide Mouse
 unclutter &
-# WM
+
+# Start emacs daemon
+emacs --daemon &
+
+#
+# Window Manager
+#
+
+
+# main
 sxhkd &
-exec bspwm
+bspwm

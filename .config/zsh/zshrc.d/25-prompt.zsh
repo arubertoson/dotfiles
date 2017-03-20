@@ -31,8 +31,8 @@ zsh-update-vim-prompt() {
 
 # Hook to zle functions
 function zle-line-init zle-keymap-select { 
-    #zsh-keymap-select-vicursor
-    zsh-update-vim-prompt
+    zsh-keymap-select-vicursor
+    #zsh-update-vim-prompt
 }
 zle -N zle-line-init
 zle -N zle-keymap-select 
@@ -50,7 +50,7 @@ function time_() {
 }
 
 # ❯ »
-PURE_PROMPT_SYMBOL='>'
+PURE_PROMPT_SYMBOL='❯'
 PURE_GIT_DOWN_ARROW='↑'
 PURE_GIT_UP_ARROW='↓'
 PROMPT='$(bg_jobs)$(time_)%(?.%F{magenta}.%F{red})${PURE_PROMPT_SYMBOL}%f '

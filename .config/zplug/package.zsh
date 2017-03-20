@@ -9,7 +9,7 @@ zplug "modules/archive", from:prezto
 zplug "modules/directory", from:prezto
 zplug "modules/history", from:prezto
 zplug "modules/utility", from:prezto
-zplug "modules/pacman", from:prezto
+#zplug "modules/pacman", from:prezto
 zstyle ':prezto:module:pacman' frontend 'pacaur'
  
 #

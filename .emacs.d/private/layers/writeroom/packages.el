@@ -25,7 +25,7 @@
           writeroom-extra-line-spacing .25
           writeroom-global-effects '(writeroom-set-alpha
                                      writeroom-set-menu-bar-lines
-                                     writeroom-set-sticky
+                                     ;; writeroom-set-sticky
                                      writeroom-set-tool-bar-lines
                                      writeroom-set-vertical-scroll-bars
                                      )))

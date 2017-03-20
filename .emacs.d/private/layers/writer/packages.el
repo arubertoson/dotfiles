@@ -100,12 +100,13 @@
       "A Grammar checker for various languages
 
       See url: url"
-      :command ("java"
-                "-d64"
-                "-jar"
+      :command ("languagetool"
+                ;;"java"
+                ;;"-d64"
+                ;;"-jar"
                 ;; "-Xmx400" ;; NOTE: Turn on this if out of memory crashes occur
-                "c:/tools/global/cmder/vendor/LanguageTool/languagetool-commandline.jar"
-                ;; (option "-l" flycheck-langtool-current-language)
+                ;;"c:/tools/global/cmder/vendor/LanguageTool/languagetool-commandline.jar"
+                (option "-l" flycheck-langtool-current-language)
                 source)
       :error-parser flycheck-parse-langtool
       :modes (text-mode markdown-mode gfm-mode)

@@ -4,12 +4,15 @@
 
 # terminal emulator
 super + Return
-	alacritty
-	#termite
+	termite
+	#alacritty
 
 # Rofi application launcher
-ctrl + {space,w}
+ctrl + {space}
 	rofi -show {run,window}
+
+super + p
+	rofi -show {window}
 
 # Scrolling mode for terminal
 super + ctrl + u : {u,d,j,k}
