@@ -4,8 +4,8 @@
 
 # terminal emulator
 super + Return
-	termite
-	#alacritty
+	alacritty
+	#termite
 
 # Rofi application launcher
 ctrl + {space}

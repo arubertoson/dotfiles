@@ -27,3 +27,4 @@ export NPM_CONFIG_CACHE="$XDG_CACHE_HOME/npm"
 export NPM_CONFIG_PREFIX="$XDG_DATA_HOME/npm"
 fi
 
+eval "$(dircolors $HOME/.dir_colors)"
