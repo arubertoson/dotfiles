@@ -1,0 +1,57 @@
+"
+" Inspiration and some functions borrowed from rafi:
+"		https://github.com/rafi/vim-config
+"
+" Runtime and Plugins
+" -------------------------------------------------
+
+if &compatible
+	set nocompatible
+endif
+
+" Set main configuration directory, and where cache is stored.
+let $VIMPATH = fnamemodify(resolve(expand('<sfile>:p')), ':h:h')
+let $VARPATH = expand(($XDG_CACHE_HOME ? $XDG_CACHE_HOME : '~/.cache').'/vim')
+
+function! SourceFile(path, ...) abort "{{{
+	let use_global = get(a:000, 0, ! has('vim_starting'))
+	let abspath = resolve(expand($VIMPATH.'/config/'.a:path))
+	if ! use_global
+		execute 'source' fnameescape(abspath)
+		return
+	endif
+
+	let content = map(readfile(abspath),
+		\ "substitute(v:val, '^\\W*\\zsset\\ze\\W', 'setglobal', '')")
+	let tempfile = tempname()
+	try
+		call writefile(content, tempfile)
+		execute printf('source %s', fnameescape(tempfile))
+	finally
+		if filereadable(tempfile)
+			call delete(tempfile)
+		endif
+	endtry
+endfunction "}}}
+
+" Set augroup
+augroup MyAutoCmd
+	autocmd!
+	autocmd CursorHold *? syntax sync minlines=300
+augroup END
+
+" Initialize base requirements
+if has('vim_starting')
+	call SourceFile('init.vim')
+	if has('nvim')
+		call SourceFile('neovim.vim')
+	endif
+endif
+
+"
+
+call SourceFile('dein.vim')
+call SourceFile('general.vim')
+call SourceFile('filetype.vim')
+call SourceFile('mappings.vim')
+call SourceFile('theme.vim')

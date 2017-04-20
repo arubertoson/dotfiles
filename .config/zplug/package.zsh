@@ -39,8 +39,3 @@ zplug "hlissner/zsh-autopair", \
 # Others
 #
 zplug "mollifier/anyframe"
-
-#
-# Temp
-#
-zplug "jedahan/ripz"

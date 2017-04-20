@@ -339,7 +339,7 @@ you should place your code here."
   (setq-default company-minimum-prefix-length 2
                 company-dab-dowcase nil
                 company-dabbrev-downcase nil
-                company-idle-delay 0.3
+                company-idle-delay 1.0
                 company-echo-delay 0
                 company-tooltip-align-annotations t
                 company-tooltip-flip-when-above t

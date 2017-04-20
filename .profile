@@ -25,5 +25,15 @@ export EDITOR="nvim"
 export VISUAL="nvim"
 
 export NPM_BIN="${LOCAL_SHARE}/npm/bin"
+export RUBY_BIN="$(ruby -rubygems -e 'puts Gem.user_dir')/bin"
+export GO_BIN="${HOME}/go/bin"
+export JAVA="/usr/share/java/languagetool"
 
-export PATH="${PATH}:${LOCAL_BIN}:${NPM_BIN}"
+export LATEX="/usr/local/texlive/2016/bin/x86_64-linux"
+export LATEXINFO="/usr/local/texlive/2016/texmf-dist/doc/info"
+export LATEXMAN="/usr/local/texlive/2016/texmf-dist/doc/man"
+
+
+export PATH="${PATH}:${LOCAL_BIN}:${NPM_BIN}:${RUBY_BIN}:${JAVA}:${GO_BIN}:${LATEX}"
+export INFOPATH="${INFOPATH}:${LATEXINFO}"
+export MANPATH="${MANPATH}:${LATEXMAN}"

@@ -12,7 +12,7 @@ alias launch.dunst='bash -c "$LOCAL_ETC/dunst/launch &"'
 
 alias reboot="sudo reboot"
 alias poweroff="sudo poweroff"
-alias halt="sudo halt" # ??
+alias suspend="sudo systemctl suspend; ~/.fehbg"
 
 # Default command flags
 alias mv="mv -v"

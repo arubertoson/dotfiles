@@ -33,11 +33,11 @@ compton -b \
 # fix monitors
 # NOTE: On monitor weirdness look here!
 source xmonitors
-xrandr --output $EXTERNAL_MONITOR --mode 1920x1080 --pos 0x0 \
-       --output $PRIMARY_MONITOR --mode 1920x1200 --pos 1920x0
+xrandr --output $EXTERNAL_MONITOR --mode 1920x1200 --pos 1920x0 \
+       --output $PRIMARY_MONITOR --mode 1920x1080 --pos 0x0
 feh --bg-scale "$LOCAL_ETC/wallpapers/gradient.jpg"
 
-# 
+#
 # Mouse
 #
 # Change cursor look & autohide cursor
@@ -45,7 +45,7 @@ xsetroot -cursor_name left_ptr
 unclutter &
 
 # Start emacs daemon
-emacs --daemon &
+# emacs --daemon &
 
 #
 # Window Manager
