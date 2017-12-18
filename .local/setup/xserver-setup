@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# Needed develop packages
+# yum install xorg-x11-proto-devel \
+#	      libX11-devel \
+#	      libXt-devel \
+#	      libXfixes-devel \
+#	      libXi-devel
+
+
+# Install X server
+yum groupinstall "X Window System" "Desktop" "Desktop Platform"
+
+
+# Fonts
+yum install -y \
+  terminus-fonts \
+  dejavu-sans-fonts \
+  dejavu-sans-mono-fonts \
+  dejavu-serif-fonts \
+  mozilla-fira-mono-fonts \
+  mozilla-fira-sans-fonts
+
+# Others
+yum install -y \
+  xclip \
+  gnome-terminal
+
+# Change gnome-terminal theme
+wget https://raw.githubusercontent.com/denysdovhan/gnome-terminal-one/master/one-dark.sh && . one-dark.sh
+
+
+# Latest spectrwm as previous versions don't really work
+yum -y --enablerep=epel-testing install spectrwm
+
+
+
+# Xbanish (Hiding cursor when typing)
+# git clone https://github.com/jcs/xbanish.git /tmp/src/xbanish
+
