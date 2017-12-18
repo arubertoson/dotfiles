@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Make sure system is up to date and update repo lists
+yum -y update
+yum install -y epel-release yum-plugin-copr yum-utils
+yum groupinstall -y development
+yum repolist
+
+
+# Install necessary system packages
+yum install -y git gcc dkms make cmake3 neovim
+
+
+# Setting up system python versions
+yum -y install https://centos7.iuscommunity.org/ius-release.rpm
+yum -y install python2-pip python36u python36u-pip python36u-devel
+
+pip install --user neovim
+pip3 install --user neovim
+

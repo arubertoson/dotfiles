@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# Prepare guest addition install
+yum install -y update
+yum install -y gcc kernel-devel kernel-headers dkms make bzip2 perl
+export KERN_DIR=/usr/src/kernels/`uname -r`
+
+# Setup mount point
+mkdir /media/vbox
+mount -r /dev/cdrom /media/vbox
+cd /media/vbox
+
+# Install guest additions
+bash VBoxLinuxAdditions.run
+
+# Cleanup
+umount /media/vbox
+rmdir /media/vbox
