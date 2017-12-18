@@ -8,13 +8,27 @@ yum repolist
 
 
 # Install necessary system packages
-yum install -y git gcc dkms make cmake3 neovim
+yum install -y git gcc dkms make cmake3 neovim wget
 
 
 # Setting up system python versions
 yum -y install https://centos7.iuscommunity.org/ius-release.rpm
 yum -y install python2-pip python36u python36u-pip python36u-devel
 
-pip install --user neovim
-pip3 install --user neovim
+# Setting up clang version
+CLANG_VERSION=5.0.1
+yum -y copr enable alonid/llvm-$CLANG_VERSION
+yum -y install \
+  llvm-$CLANG_VERSION \
+  clang-$CLANG_VERSION \
+  clang-$CLANG_VERSION-tools-extra \
+  lldb-$CLANG_VERSION \
+  compiler-rt-$CLANG_VERSION \
+  libomp-$CLANG_VERSION \
+  libcxxabi-$CLANG_VERSION \
+  libcxx-$CLANG_VERSION
+  
+
+#pip install --user neovim
+#pip3 install --user neovim
 

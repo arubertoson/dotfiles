@@ -9,7 +9,7 @@
 
 
 # Install X server
-yum groupinstall "X Window System" "Desktop" "Desktop Platform"
+yum -y groupinstall "X Window System" "Desktop" "Desktop Platform"
 
 
 # Fonts

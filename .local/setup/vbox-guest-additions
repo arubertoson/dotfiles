@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Prepare guest addition install
-yum install -y update
+yum -y update
 yum install -y gcc kernel-devel kernel-headers dkms make bzip2 perl
 export KERN_DIR=/usr/src/kernels/`uname -r`
 
@@ -16,3 +16,5 @@ bash VBoxLinuxAdditions.run
 # Cleanup
 umount /media/vbox
 rmdir /media/vbox
+
+reboot
