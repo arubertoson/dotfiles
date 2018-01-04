@@ -11,7 +11,7 @@ mount -r /dev/cdrom /media/vbox
 cd /media/vbox
 
 # Install guest additions
-bash VBoxLinuxAdditions.run
+source VBoxLinuxAdditions.run
 
 # Cleanup
 umount /media/vbox

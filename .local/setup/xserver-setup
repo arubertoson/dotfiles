@@ -21,6 +21,8 @@ yum install -y \
   mozilla-fira-mono-fonts \
   mozilla-fira-sans-fonts
 
+yum --enablerepo=epel-testing install google-droid-sans-mono-fonts
+
 # Others
 yum install -y \
   xclip \
