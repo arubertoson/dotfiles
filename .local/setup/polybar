@@ -1,0 +1,21 @@
+yum -y install cmake3 @development-tools
+yum -y install \
+  cairo-devel \
+  xcb-proto \
+  xcb-util-devel \
+  xcb-util-wm-devel \
+  xcb-util-image-devel \
+  xcb-util-cursor-devel
+
+# Volume
+yum -y install alsa-lib-devel
+
+# Network
+yum -y install wireless-tools-devel
+
+# MPD
+yum -y install libmpdclient-devel
+
+# Github
+yum -y install libcurl-devel
+ 

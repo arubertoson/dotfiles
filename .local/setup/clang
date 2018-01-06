@@ -1,0 +1,9 @@
+yum -y copr enable alonid/llvm-5.0.1
+yum -y install \
+  llvm-5.0.1 \
+  clang-5.0.1 \
+  clang-5.0.1-tools-extra \
+  lldb-5.0.1 \
+  compiler-rt-5.0.1 \
+  libcxxabi-5.0.1 \
+  libcxx-5.0.1

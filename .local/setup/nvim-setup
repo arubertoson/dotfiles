@@ -1,0 +1,23 @@
+#!/env/bash
+
+git clone https://github.com/arubertoson/vimfiles.git ~/.vim
+
+
+if ! [ -x "$(command -v stack)" ];  then
+  echo "Installing haskell stack"
+  source "haskell-setup"
+fi
+
+if ! [ -x "$(command -v miv)"]; then
+  echo "Installing miv"
+  git clone https://github.com/itchyny/miv.git $HOME/.local/src/miv
+  cd $HOME/.local/src/miv
+  stack setup && stack build && stack install
+fi
+
+# Miv doesn't handle submodules very well - so needs to be handled
+# afterwards manually
+miv install
+
+echo 
+echo "nVim/Vim setup complete"
