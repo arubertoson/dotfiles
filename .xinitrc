@@ -55,4 +55,7 @@
 # main
 # sxhkd &
 # bspwm
-exec spectrwm
+exec bspwm
+
+xset +fp $HOME/.fonts
+xset fp rehash

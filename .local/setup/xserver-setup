@@ -13,6 +13,7 @@ yum -y groupinstall "X Window System" "Desktop" "Desktop Platform"
 
 
 # Fonts
+yum install -y xorg-x11-font-utils
 yum install -y \
   terminus-fonts \
   dejavu-sans-fonts \
