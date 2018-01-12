@@ -47,5 +47,5 @@ alias map="xargs -n1"
 
 
 # Conviniece
-alias nvim=nvim -u $HOME/.vim/vimrc
+alias nvim='nvim -u $HOME/.vim/vimrc'
 

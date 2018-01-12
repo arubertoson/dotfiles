@@ -30,7 +30,7 @@ yum install -y \
   gnome-terminal
 
 # Change gnome-terminal theme
-wget https://raw.githubusercontent.com/denysdovhan/gnome-terminal-one/master/one-dark.sh && . one-dark.sh
+#wget https://raw.githubusercontent.com/denysdovhan/gnome-terminal-one/master/one-dark.sh && . one-dark.sh
 
 
 # Latest spectrwm as previous versions don't really work
