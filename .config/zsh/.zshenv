@@ -14,6 +14,8 @@ export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
 export ZGEN_DIR="$XDG_CACHE_HOME/zgen"
 export ZSH_CACHE="$XDG_CACHE_HOME/zsh"
 
+export PATH="${PATH}:${XDG_BIN_HOME}"
+
 #
 # Environment variables
 #

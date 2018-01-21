@@ -30,3 +30,10 @@ autoload -Uz compinit && compinit -d $ZSH_CACHE/zcompdump
 
 # usr alias
 source "${ZDOTDIR}/aliases.zsh"
+eval "$(dircolors ${ZDOTDIR}/.dir_colors)"
+
+# python
+export PYTHONPATH="$PYTHONPATH:$HOME/python-dev/extras/python/autodesk/"
+export PATH="/home/macke/.pyenv/bin:$PATH"
+eval "$(pyenv init -)"
+eval "$(pyenv virtualenv-init -)"
