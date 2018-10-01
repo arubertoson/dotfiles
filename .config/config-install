@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+# condarc
+git clone https://gist.github.com/1b71f16461b271f2741a132c9d30c01b.git ~/.config/condarc
+
+# yarnrc
+git clone
