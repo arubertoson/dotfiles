@@ -1,4 +1,0 @@
-BSPWM_DEPS="libxcb-devel libxcb xcb-util xcb-util-wm xcb-util-devel xcb-util-wm-devel xcb-util-keysyms-devel"
-
-
-yum install -y $BSPWM_DEPS

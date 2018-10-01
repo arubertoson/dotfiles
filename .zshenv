@@ -1,1 +1,0 @@
-/home/macke/.config/zsh/.zshenv
