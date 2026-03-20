@@ -35,6 +35,14 @@ $0() {
   # process run asynchronously and non-blocking.
   exec {fd}< <(
     if is_inside_git_dir; then
+      local repo_name=$(basename "$(git rev-parse --show-toplevel)")
+      local branch_name=$(git rev-parse --abbrev-ref HEAD)
+      local display_string="repo:${repo_name}[${branch_name}]"
+
+      if [[ -n "${TMUX}" ]]; then
+        tmux rename-window "${display_string}"
+      fi
+
       # we create a second output for the window title
       if git rev-parse --quiet --verify HEAD > /dev/null; then
         # The repository has commits, so it's safe to fetch the branch name.
@@ -43,7 +51,7 @@ $0() {
         # The repository is empty, so just use the repository name.
         print -r -- "repo:$(basename "$(git rev-parse --show-toplevel)")"
       fi
-      
+
       vcs_info
       print -r -- $vcs_info_msg_0_
     fi
@@ -60,36 +68,36 @@ prompt_launchpad_vcs-info() {
   # descriptor number passed to the function.
   local -i fd=$1
 
-  # Check if a valid file descriptor is passed to the function. If not, the 
-  # function exits immediately. This is a failsafe to ensure that the function 
+  # Check if a valid file descriptor is passed to the function. If not, the
+  # function exits immediately. This is a failsafe to ensure that the function
   # has the necessary input to proceed.
   [[ -z $fd ]] && return
 
-  # Declare a local variable 'REPLY'. This is used by the 'read' command as a 
+  # Declare a local variable 'REPLY'. This is used by the 'read' command as a
   # default variable to store input data.
   local REPLY
 
-  # The main block of the function starts here. The block is designed to execute 
+  # The main block of the function starts here. The block is designed to execute
   # a series of commands that set the terminal title and update the prompt.
   {
-    # 'zle -F' unregisters the file descriptor from Zsh's line editor, ensuring 
+    # 'zle -F' unregisters the file descriptor from Zsh's line editor, ensuring
     # it does not interfere with the prompt.
     zle -F "$fd"
 
-    # Read the first line of output from the file descriptor. This output is 
+    # Read the first line of output from the file descriptor. This output is
     # expected to be the information used for setting the terminal title.
     read -ru$fd
 
-    # Set the terminal title. It includes the hostname (%m), the current user (%n), 
-    # and the first line of output from the file descriptor. The sequence '\e]0;' 
+    # Set the terminal title. It includes the hostname (%m), the current user (%n),
+    # and the first line of output from the file descriptor. The sequence '\e]0;'
     # and '\a' are escape codes used to set the window title in most terminal emulators.
     print -Pn "\e]0;%m@%n $REPLY\a"
 
-    # Read the second line of output from the file descriptor. This output is 
+    # Read the second line of output from the file descriptor. This output is
     # expected to be the VCS information for the prompt.
     read -ru$fd
 
-    # Check if the shell is running in a nested mode (SHLVL > 1). If so, append 
+    # Check if the shell is running in a nested mode (SHLVL > 1). If so, append
     # additional information about the shell level to 'REPLY'.
     (( SHLVL > 1 )) && REPLY+=" %F{242}[${SHLVL}]"
 
@@ -97,13 +105,13 @@ prompt_launchpad_vcs-info() {
     # This avoids unnecessary updates and potential flickering of the prompt.
     if [[ $RPS1 != $REPLY ]]; then
         RPS1=$REPLY
-        # Reset the prompt to reflect changes. This is done only if the shell 
+        # Reset the prompt to reflect changes. This is done only if the shell
         # is about to display a prompt (CONTEXT == start), enhancing performance.
         [[ $CONTEXT == start ]] && zle .reset-prompt
     fi
   } always {
     # The 'always' block is executed regardless of how the preceding block exits.
-    # Here, it ensures that the file descriptor is closed. This is crucial for 
+    # Here, it ensures that the file descriptor is closed. This is crucial for
     # proper resource management and avoiding file descriptor leaks.
     exec {fd}<&-
   }
