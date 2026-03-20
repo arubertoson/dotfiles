@@ -14,12 +14,20 @@ fi
 eval "$(mise activate bash)"
 
 # Single source of truth install from ~/.mise.toml
-if [ -f "$HOME/.mise.toml" ]; then
-  mise trust "$HOME/.mise.toml" || true
+if [ -f "$HOME/.config/mise/config.toml" ]; then
+  mise trust "$HOME/.config/mise/config.toml" || true
   mise install -y
 
   # Optional: align already-installed tools to the pinned versions
-  mise upgrade || true
+  # mise upgrade || true
+fi
+
+if have zoxide; then
+  # zoxide is installed via mise, but we need to activate it in this shell
+  RC="${ZDOTDIR:-$HOME}/.zshrc"
+  ACT='eval "$(zoxide init bash)"'
+  printf '\n%s\n' "$ACT" >> "$RC"
+  echo "[30-cli] Added zoxide activation to $RC"
 fi
 
 # Node corepack only if Node exists (no global -g nonsense)

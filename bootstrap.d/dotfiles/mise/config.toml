@@ -5,48 +5,57 @@ PIP_DISABLE_PIP_VERSION_CHECK = "1"
 [tools]
 # Runtimes (fallbacks; projects still pin their own)
 node   = "lts"
-python = "3.12"
-go     = "1.23"
-zig    = "0.13.0"
+python = "3.12.9"
+go     = "1.25.1"
+zig    = "0.15.1"
 rust   = "stable"
+odin   = "dev-2025-09"
+clang  = "21.1.1"
+tmux   = "latest"
+zellij = "0.43.1"
+luajit = "2.1.ROLLING"
+jq     = "1.8.1"
+process-compose = "1.94"
 
-bun = "1.2.22"
+# "cargo:https://github.com/Dutch-Raptor/GAT-GWM" = { "version" = "0.4.0" } 
+
+yt-dlp = "2025.10.22"
+deno = "2"
 
 # CLU utils
+"ubi:XAMPPRocky/tokei"	      = "12.1.2"
+"ubi:jdx/usage"		      = "2.2.2"
+"ubi:oven-sh/bun"             = "bun-v1.2.22"
 "ubi:chmln/sd"		      = "1.0.0"
 "ubi:x-motemen/ghq"	      = "1.8.0"
 "ubi:cli/cli"		      = { version = "2.79.0", exe = "gh" }
-"ubi:neovim/neovim"	      = { version = "0.11.4", extract_all= "true", bin_path = "bin" }
+"ubi:neovim/neovim"	      = { version = "nightly", extract_all= "true", bin_path = "bin" }
 "ubi:astral-sh/uv"            = { version = "0.8.18", extract_all = "true" }
 "ubi:BurntSushi/ripgrep"      = { version = "14.1.1", exe = "rg" }
-"ubi:sharkdp/fd"              = "10.2.0"
-"ubi:sharkdp/bat"             = "0.24.0"
-"ubi:ajeetdsouza/zoxide"      = "0.9.6"
+"ubi:sharkdp/fd"              = "10.3.0"
+"ubi:eza-community/eza"       = "0.23.4"
+"ubi:sharkdp/bat"             = "0.25.0"
+"ubi:ajeetdsouza/zoxide"      = "0.9.8"
 "ubi:junegunn/fzf"            = "0.65.2"
-"ubi:jesseduffield/lazygit"   = "0.43.1"
-"ubi:casey/just"              = "1.37.0"
-"ubi:watchexec/watchexec"     = "2.2.0"
-"ubi:dandavison/delta"        = "0.17.0"
-"ubi:muesli/duf"              = "0.8.1"
-"ubi:bootandy/dust"           = "0.8.6"
-"ubi:sharkdp/hyperfine"       = "1.18.0"
-"ubi:mikefarah/yq"            = "4.44.3"
-"ubi:aristocratos/btop"       = "1.3.2"
-"ubi:ducaale/xh"              = "0.22.0"
+"ubi:jesseduffield/lazygit"   = "0.55.1"
+"ubi:casey/just"              = "1.42.0"
+"ubi:watchexec/watchexec"     = "2.3.2"
+"ubi:dandavison/delta"        = "0.18.2"
+"ubi:muesli/duf"              = "0.9.1"
+"ubi:bootandy/dust"           = "1.2.3"
+"ubi:sharkdp/hyperfine"       = "1.19.0"
+"ubi:mikefarah/yq"            = "4.47.2"
+"ubi:aristocratos/btop"       = "1.4.4"
+"ubi:ducaale/xh"              = "0.24.1"
 "ubi:tree-sitter/tree-sitter" = "v0.25.9"
+ollama = "latest"
 
 [tasks]
 
-doctor = [
-  "mise --version",
-  "node -v && npm -v",
-  "python -V",
-  "uv --version",
-  "rg --version",
-  "fd --version",
-  "jq --version",
-  "duf --version",
-  "btop --version",
-  "tree-sitter --version",
-  "lazygit --version"
+clean = [
+	"mise cache clear",
+	"mise prune",
 ]
+
+[settings]
+idiomatic_version_file_enable_tools = []
