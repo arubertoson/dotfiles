@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+exec uvx --with llm-openrouter --from "llm@0.27.1" llm "$@"
