@@ -6,12 +6,10 @@
 # For more info on each plugin, visit its repo at github.com/<plugin>
 # -a sets the variable's type to array.
 local -a plugins=(
-    marlonrichert/zcolors               # Colors for completions and Git
+    marlonrichert/zcolors
 
     jeffreytse/zsh-vi-mode              # Vi mode
     hlissner/zsh-autopair               # Auto-pair quotes and parenthesis
-    wfxr/forgit                         # Git utilities
-    junegunn/fzf                        # Command-line fuzzy finder
     adrieankhisbe/zsh-quiet-accept-line # run comands without outputting to the prompt
 
     zsh-users/zsh-completions 		# Inline suggestions
@@ -43,6 +41,4 @@ for p in $plugins; do
   znap source $p
 done
 
-# `znap eval <name> '<command>'` is like `eval "$( <command> )"` but with
-# caching and compilation of <command>'s output, making it ~10 times faster.
-znap eval zcolors zcolors   # Extra init code needed for zcolors.
+znap eval zcolors zcolors

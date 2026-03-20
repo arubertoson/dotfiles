@@ -16,7 +16,7 @@ export ZK_NOTEBOOK_DIR=~/notes
 path=(
     $path
     ~/.local/bin
-    /mnt/c/Users/macke/AppData/Local/Microsoft/WinGet/Packages/equalsraf.win32yank_Microsoft.Winget.Source_8wekyb3d8bbwe
+    $WIN32YANK
 )
 
 # Add your functions to your $fpath, so you can autoload them.
@@ -25,3 +25,5 @@ fpath=(
     $fpath
     ~/.local/share/zsh/site-functions
 )
+
+source $ZDOTDIR/functions/llm-q

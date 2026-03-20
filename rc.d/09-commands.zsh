@@ -21,12 +21,7 @@ alias ...='cd ../..'
 alias ....='cd ../../..'
 alias -- -='cd -'
 
-alias mk=make
-
-alias ln="${aliases[ln]:-ln} -v"  # verbose ln
-alias l='ls -ha1 --color=auto'
-alias ll='ls -hal --color=auto'
-alias la='LC_COLLATE=C ls -hal --color=auto'
+alias la='eza --all --group-directories-first --header --long'
 
 # notify me before clobbering files
 alias rm='rm -i -v'
@@ -34,8 +29,8 @@ alias cp='cp -i -v'
 alias mv='mv -i -v'
 
 # Wrapping for terminal
-alias wrap='tput rmam'
-alias nowrap='tput smam'
+alias nowrap='tput rmam'
+alias wrap='tput smam'
 
 # These aliases enable us to paste example code into the terminal without the
 # shell complaining about the pasted prompt symbol.
@@ -50,10 +45,14 @@ alias zln='zmv -Lv'
 # Note that, unlike with Bash, you do not need to inform Zsh's completion system
 # of your aliases. It will figure them out automatically.
 
+alias clip="/mnt/c/Windows/System32/clip.exe"
+
 # Set $PAGER if it hasn't been set yet. We need it below.
 # `:` is a builtin command that does nothing. We use it here to stop Zsh from
 # evaluating the value of our $expansion as a command.
-: ${PAGER:=bat}
+: ${PAGER:=bat -p}
+
+alias cat="${PAGER}"
 
 # Associate file name .extensions with programs to open them.
 # This lets you open a file just by typing its name and pressing enter.
@@ -62,62 +61,23 @@ alias -s {css,gradle,html,js,json,md,patch,properties,txt,xml,yml}=$PAGER
 alias -s gz='gzip -l'
 alias -s {log,out}='tail -F'
 
-llm_with_editor() {
-    local system_prompt="$1"
-    shift
-    
-    local input
-    local temp_file
-
-    # Check if we have stdin
-    if [[ ! -t 0 ]]; then
-        # Read from pipe
-        input=$(cat)
-    elif [[ $# -eq 0 ]]; then
-        # No arguments, use editor
-        temp_file=$(mktemp)
-        ${EDITOR:-vim} "$temp_file"
-        
-        if [[ ! -s "$temp_file" ]]; then
-            echo "No input provided"
-            rm "$temp_file"
-            return 1
-        fi
-        
-        input=$(cat "$temp_file")
-        /bin/rm "$temp_file"
-    else
-        input="$*"
-    fi
-    
-    llm -m "gpt-4.1-nano" -s "$system_prompt" "$input" | glow
-}
-
-# Now your specific functions become very simple:
-trns() {
-    if [[ $# -lt 1 ]]; then
-        echo "Usage: trns <target_language> [text...]"
-        echo "   or: trns <target_language>  # opens editor"
-        echo "   or: echo 'text' | trns <target_language>"
-        return 1
-    fi
-    
-    local target_lang="$1"
-    shift
-    
-    local prompt="Translate the input language to $target_lang, 
-keep the tone and only respond with the translation, 
-do not elaborate."
-    
-    llm_with_editor "$prompt" "$@"
-}
-
-q() {
-	local prompt="Write a short, concise, and clear answer to 
-the question. Do not elaborate."
-
-	llm_with_editor "$prompt" "$@"
-}
 
 # Use `< file` to quickly view the contents of any text file.
 READNULLCMD=$PAGER  # Set the program to use for this.
+
+alias t='tmux attach-session -t main 2>/dev/null || tmux new-session -s main'
+
+# Auto-ls when changing directories
+chpwd() {
+  clear -x && la
+}
+
+# zf - custom fzf + zoxide function to easily jump to frequently or recently used directories
+zf() {
+  cd "$(zoxide query --list --score | fzf --height 40% --layout reverse --info inline --border --preview "eza --all --group-directories-first --header --long --no-user --no-permissions --color=always {2}" --no-sort | awk '{print $2}')"
+}
+
+# Load a .env file into the current shell
+load_env() {
+  set -o allexport && source .env && set +o allexport
+}

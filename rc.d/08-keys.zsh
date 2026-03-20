@@ -59,11 +59,18 @@ bindkey '^[w' where-is
   }
 } .sudo
 
+# Command line editor
+autoload -Uz edit-command-line
+zle -N edit-command-line
+
+bindkey '^X^E' edit-command-line
+
 bindkey -M viins '^a' beginning-of-line
 bindkey -M viins '^d' push-line-or-edit
 
 bindkey '^p' history-search-backward
 bindkey '^n' history-search-forward
+
 
 # Unbind vicmd keys
 bindkey -r -M vicmd 'k'

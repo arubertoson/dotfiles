@@ -1,10 +1,8 @@
 #!/usr/bin/env zsh
 
-# If we currently don't have fzf avaialble then we isntall it and link it to
-# our local bin.
-if ((! $+commands[fzf])); then
-  ~[junegunn/fzf]/install --no-fish --no-bash --bin
-  ln -sf ~[junegunn/fzf]/bin/fzf $XDG_BIN_HOME/fzf
+if ! command -v fzf >/dev/null 2>&1; then
+  echo "fzf not found, not loading fzf config." >&2
+  return 1
 fi
 
 FDFIND_COMMAND=fd
@@ -66,13 +64,28 @@ fzf-change-to-dev-project() {
     return 0
   fi
 
-  # Safe quoting and execute in current shell
-  BUFFER="builtin cd -- $DEV_ROOT/${(q)dir}"
-  zle silent-accept-line
-  # zle quiet-accept-line
+  local session_name=$(basename "$dir" | tr . _)
 
-  printf '\r\033[38;5;12m%s\033[0m' "~dev/$dir"
-  zle accept-line
+  if [[ -z "$TMUX" ]]; then
+	  # Safe quoting and execute in current shell
+	  BUFFER="builtin cd -- $DEV_ROOT/${(q)dir}"
+	  zle silent-accept-line
+	  # zle quiet-accept-line
+
+	  printf '\r\033[38;5;12m%s\033[0m' "~dev/$dir"
+	  zle accept-line
+  else
+	  if ! tmux has-session -t="$session_name" 2> /dev/null; then
+	    # Create the session and name the first window 'code'
+	    tmux new-session -ds "$session_name" -n "code" -c "$DEV_ROOT/${dir}"
+
+	    # Pre-create your 'Zones' so they are ready when you jump in
+	    tmux new-window -t "$session_name:2" -n "server" -c "$DEV_ROOT/${dir}"
+	    tmux new-window -t "$session_name:3" -n "logs" -c "$DEV_ROOT/${dir}"
+	    tmux new-window -t "$session_name:4" -n "misc" -c "$DEV_ROOT/${dir}"
+	  fi
+	  tmux switch-client -t "$session_name"
+  fi
 }
 
 # Expose zle functions
@@ -83,11 +96,12 @@ zle -N fzf-change-to-dev-project
 # fzf keybinds
 bindkey -M vicmd '^@p' fzf-echo-env
 bindkey -M vicmd '^@j' fzf-select-job
-bindkey -M vicmd '^@\\' fzf-change-to-dev-project
+# bindkey -M vicmd '^@\\' fzf-change-to-dev-project
+# Bind Alt+s (^[s) to your project switcher in both Insert and Normal mode
+bindkey -M viins '^[s' fzf-change-to-dev-project
+bindkey -M vicmd '^[s' fzf-change-to-dev-project
 
-# Add completion & base functions from fzf/shell directory
-source ~[junegunn/fzf]/shell/key-bindings.zsh
-znap fpath _fzf '< ~[junegunn/fzf]/shell/completion.zsh'
+FZF_DEFAULT_OPTS="--height=40% --layout=reverse"
 
 if (($+commands[fd])); then
   export FZF_CTRL_T_COMMAND="$FDFIND_COMMAND . --hidden"
