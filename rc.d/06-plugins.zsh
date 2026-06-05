@@ -8,7 +8,7 @@
 local -a plugins=(
     marlonrichert/zcolors
 
-    jeffreytse/zsh-vi-mode              # Vi mode
+    
     hlissner/zsh-autopair               # Auto-pair quotes and parenthesis
     adrieankhisbe/zsh-quiet-accept-line # run comands without outputting to the prompt
 

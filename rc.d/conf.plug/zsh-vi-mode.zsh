@@ -1,20 +1,18 @@
+bindkey -v
+bindkey '^[' vi-cmd-mode
+bindkey '^p' history-search-backward
+bindkey '^n' history-search-forward
 
-# zsh-vi-mode
-export ZVM_INIT_MODE=sourcing
+bindkey -M vicmd 'k' up-line-or-search
+bindkey -M vicmd 'N' history-search-backward
 
-# We are essentially using this delayed init to set the mode we start
-# a shell in. Most of the time the first thing in a new shell is a
-# navigation command and that is usually handled though widgets.
-function delayed-init() {
-  ZVM_MODE=$ZVM_MODE_NORMAL
+echo -en '\x1b[6 q'
+
+cursor-set-vi-mode() {
+    case $KEYMAP in
+        vicmd) echo -en '\x1b[2 q' ;;
+        main|viins) echo -en '\x1b[6 q' ;;
+    esac
 }
 
-function zvm_config() {
-  ZVM_VI_INSERT_ESCAPE_BINDKEY=jk
-
-  zvm_after_init_commands+=(delayed-init)
-  
-  ZVM_SYSTEM_CLIPBOARD_ENABLED=true
-  ZVM_CLIPBOARD_COPY_CMD='win32yank.exe -i --crlf'
-  ZVM_CLIPBOARD_PASTE_CMD='win32yank.exe -o --lf'
-}
+zle -N zle-keymap-select cursor-set-vi-mode
