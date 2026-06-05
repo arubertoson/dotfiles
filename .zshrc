@@ -28,9 +28,8 @@
 # bugs you avoid this way.
 } "$@"
 
-
 # After init setup.
-znap eval mise '~/.local/bin/mise activate zsh'
+eval "$("$HOME/.local/bin/mise" activate zsh --shims)"
 znap fpath _mise '~/.local/bin/mise completions zsh'
 znap eval zoxide 'zoxide init zsh'
 
@@ -38,16 +37,3 @@ znap eval zoxide 'zoxide init zsh'
 # The setup though :(
 znap eval fzf 'fzf --zsh'
 source "$ZDOTDIR/rc.d/conf.plug/fzf.zsh"
-
-# Clear the $TMUX variable if it's pointing to a non-existent socket
-# This prevents the "nested with care" error if WSL is acting up
-if [[ -n "$TMUX" ]] && ! tmux ls >/dev/null 2>&1; then
-    unset TMUX
-fi
-
-# Only run if we are in an interactive shell and NOT already in tmux
-if [[ -z "$TMUX" && -n "$PS1" ]]; then
-    # 1. Try to attach to 'main'. If it fails, create 'main'.
-    # 2. '&& exit' ensures that when you quit tmux, Alacritty closes immediately.
-    (tmux attach-session -t main 2>/dev/null || tmux new-session -s main) && exit
-fi

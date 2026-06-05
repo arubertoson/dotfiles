@@ -36,20 +36,14 @@ $0() {
   exec {fd}< <(
     if is_inside_git_dir; then
       local repo_name=$(basename "$(git rev-parse --show-toplevel)")
-      local branch_name=$(git rev-parse --abbrev-ref HEAD)
-      local display_string="repo:${repo_name}[${branch_name}]"
 
-      if [[ -n "${TMUX}" ]]; then
-        tmux rename-window "${display_string}"
-      fi
-
-      # we create a second output for the window title
+      # Keep tmux repo identity at the session level; window names are layout roles.
+      # We still use the repo/branch string for the terminal title below.
       if git rev-parse --quiet --verify HEAD > /dev/null; then
-        # The repository has commits, so it's safe to fetch the branch name.
-        print -r -- "repo:$(basename "$(git rev-parse --show-toplevel)")[$(git rev-parse --abbrev-ref HEAD)]"
+        local branch_name=$(git rev-parse --abbrev-ref HEAD)
+        print -r -- "repo:${repo_name}[${branch_name}]"
       else
-        # The repository is empty, so just use the repository name.
-        print -r -- "repo:$(basename "$(git rev-parse --show-toplevel)")"
+        print -r -- "repo:${repo_name}"
       fi
 
       vcs_info
