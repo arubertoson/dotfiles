@@ -1,0 +1,64 @@
+#autoload
+
+dev-clone() {
+  emulate -L zsh
+
+  local location="home"
+  local remote
+
+  if [[ $# -eq 1 ]]; then
+    remote="$1"
+  elif [[ $# -eq 2 ]]; then
+    location="$1"
+    remote="$2"
+  else
+    echo "usage: dev-clone [location] <remote>" >&2
+    return 1
+  fi
+
+  local url="${remote%.git}"
+  local provider user repo rest clone
+
+  if [[ "$url" == git@*:* ]]; then
+    provider="${url#git@}"
+    provider="${provider%%:*}"
+    rest="${url#*:}"
+    clone="$remote"
+  elif [[ "$url" == *://* ]]; then
+    rest="${url#*://}"
+    provider="${rest%%/*}"
+    rest="${rest#*/}"
+    clone="$remote"
+  elif [[ "$url" == *@*:* ]]; then
+    provider="${url#*@}"
+    provider="${provider%%:*}"
+    rest="${url#*:}"
+    clone="$remote"
+  else
+    provider="${url%%/*}"
+    rest="${url#*/}"
+    clone="git@${provider}:${rest}.git"
+  fi
+
+  user="${rest%%/*}"
+  repo="${rest#*/}"
+
+  if [[ -z "$provider" || -z "$user" || -z "$repo" || "$repo" == "$rest" ]]; then
+    echo "invalid remote: $remote" >&2
+    return 1
+  fi
+
+  local dev="${XDG_DEV_HOME:-$HOME/dev}"
+  local dest="$dev/$location/$provider/$user/$repo"
+
+  if [[ -e "$dest" ]]; then
+    echo "already exists: $dest" >&2
+    cd "$dest"
+    return
+  fi
+
+  mkdir -p "${dest:h}" || return 1
+  git clone "$clone" "$dest" || return 1
+
+  echo "cloned repo to: $dest"
+}

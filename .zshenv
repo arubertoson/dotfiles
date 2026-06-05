@@ -24,6 +24,7 @@ export XDG_DATA_HOME="${HOME_LOCAL}/share"
 export XDG_BIN_HOME="${HOME_LOCAL}/bin"
 export XDG_APP_HOME="${HOME_LOCAL}/package"
 export XDG_DEV_HOME="${HOME}/dev"
+export XDG_WORKTREES_HOME="${XDG_DEV_HOME}/.worktrees"
 export XDG_WINDOWS_DEV_HOME="/mnt/c/Users/Macke/dev"
 
 export EDITOR="nvim"
