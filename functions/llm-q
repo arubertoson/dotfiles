@@ -103,7 +103,7 @@ _llm_run() {
 # Examples:
 #   export LLM_Q_MODEL="openai:gpt-4o-mini"
 #   export LLM_SMART_MODEL="openai:gpt-4o"
-: "${LLM_Q_MODEL:="openrouter/openai/gpt-5-nano"}"
+: "${LLM_Q_MODEL:="gpt-5.4-mini"}"
 : "${LLM_Q_CODE_MODEL:="openrouter/openai/gpt-5-codex"}"
 : "${LLM_SMART_MODEL:="openrouter/openai/gpt-5"}"
 
@@ -130,7 +130,7 @@ _q_like() {
 }
 
 q() {
-  _q_like "Answer concisely with correct code when relevant. Prefer clarity over cleverness." "${LLM_Q_MODEL}" "$@"
+  _q_like "Answer concisely, prefer clarity over cleverness and sacrifice grammar for consision." "${LLM_Q_MODEL}" "$@"
 }
 
 alias qc='q -c'
