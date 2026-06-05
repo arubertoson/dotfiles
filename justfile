@@ -10,7 +10,7 @@ update component="":
     @if [ "{{component}}" = "scripts" ]; then \
         ./bootstrap.d/40-scripts; \
     elif [ "{{component}}" = "dotfiles" ]; then \
-        ln -sfn -- $(pwd)/dotfiles/* $XDG_CONFIG_HOME/ 2>/dev/null || true; \
+        ./bootstrap.d/35-dotfiles; \
     elif [ "{{component}}" = "mise" ]; then \
         ./bootstrap.d/20-mise; \
     elif [ "{{component}}" = "ssh" ]; then \

@@ -98,6 +98,3 @@
 	HEAD = 7 4
 [init]
 	defaultBranch = main
-[user]
-	email = ugh
-	name = Ugh
