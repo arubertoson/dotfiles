@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(dirname "${BASH_SOURCE[0]}")"
+DOTFILES="$ROOT/../dotfiles"
+XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+
+log() { printf "\033[1;36m[35-dotfiles]\033[0m %s\n" "$*"; }
+
+mkdir -p "$XDG_CONFIG_HOME"
+
+log "Linking dotfiles to $XDG_CONFIG_HOME"
+linked_count=0
+skipped_count=0
+
+shopt -s nullglob dotglob
+
+for dot in "$DOTFILES"/*; do
+    [ -f "$dot" ] || [ -d "$dot" ] || continue
+
+    dot_name=$(basename "$dot")
+    source="$(realpath "$dot")"
+
+    target="$XDG_CONFIG_HOME/$dot_name"
+    if [ "$dot_name" = ".tmux.conf" ]; then
+        target="$HOME/$dot_name"
+    fi
+
+    if [ -L "$target" ] && [ "$(readlink "$target")" = "$source" ]; then
+        log "dot $dot_name already linked correctly"
+        skipped_count=$((skipped_count + 1))
+    else
+        log "Linking $dot_name"
+        ln -sfnT -- "$source" "$target"
+        linked_count=$((linked_count + 1))
+    fi
+done
+
+# Clean up any broken symlinks that may have been left from previous runs
+find "$XDG_CONFIG_HOME" -type l ! -exec test -e {} \; -delete 2>/dev/null || true
+
+log "[35-dotfiles] OK - Linked: $linked_count, Skipped: $skipped_count"
+
+exit 0
+

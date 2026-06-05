@@ -1,0 +1,74 @@
+#!/usr/bin/env zsh
+set -euo pipefail
+
+# tmux-workspace
+#
+# Small dispatcher for creating and switching tmux workspaces from different
+# sources. The core script intentionally knows very little about each source;
+# it loads modules from tmux-workspace.d and then dispatches to the selected
+# command. This keeps future features, like GitHub PR worktrees, out of this
+# file and lets each source/action own its own logic.
+#
+# Module layout:
+#   tmux-workspace.d/00-core.zsh           shared fzf/path/tmux helpers
+#   tmux-workspace.d/actions/*.zsh         things we can do with a selection
+#   tmux-workspace.d/sources/*.zsh         things we can list and pick
+#
+# Row format used by sources:
+#   kind<TAB>label<TAB>payload
+#
+# The current actions mostly treat payload as a path, but the TSV shape gives us
+# room to add richer actions later without changing the picker plumbing.
+
+# Configuration. Environment overrides make tmux bindings and one-off debugging
+# easy without needing a separate config file.
+DEV_ROOT="${TMUX_WORKSPACE_DEV_ROOT:-${TMUX_SESSIONIZER_DEV_ROOT:-${XDG_DEV_HOME:-$HOME/dev}}}"
+CACHE_DIR="${TMUX_WORKSPACE_CACHE_DIR:-${TMUX_SESSIONIZER_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/tmux-workspace}}"
+CACHE_TTL="${TMUX_WORKSPACE_CACHE_TTL:-${TMUX_SESSIONIZER_CACHE_TTL:-900}}"
+FZF_HEIGHT="${TMUX_WORKSPACE_FZF_HEIGHT:-${TMUX_SESSIONIZER_FZF_HEIGHT:-100%}}"
+FZF_OPTS="${TMUX_WORKSPACE_FZF_DEFAULT_OPTS:-${TMUX_SESSIONIZER_FZF_DEFAULT_OPTS:-}}"
+
+PROJECT_CACHE="$CACHE_DIR/projects.tsv"
+SCRIPT_PATH="${0:A}"
+SCRIPT_DIR="${0:A:h}"
+SOURCE_DIR="${TMUX_WORKSPACE_SOURCE_DIR:-$SCRIPT_DIR/tmux-workspace.d}"
+
+# First match wins so specific project groups can override broad defaults.
+# Quote each rule so zsh stores the wildcard pattern instead of expanding it at
+# startup; matching happens later inside windows-for.
+typeset -ga TMUX_WORKSPACE_LAYOUTS
+TMUX_WORKSPACE_LAYOUTS=(
+  "$DEV_ROOT/*:code term serv agent"
+  "$HOME/*:code misc"
+  '*:code misc'
+)
+
+() {
+  local file
+
+  # Modules are loaded numerically to make dependencies explicit: core first,
+  # then actions, then sources that call those actions.
+  for file in \
+    "$SOURCE_DIR"/<->-*.zsh(n) \
+    "$SOURCE_DIR"/actions/<->-*.zsh(n) \
+    "$SOURCE_DIR"/sources/<->-*.zsh(n); do
+    source "$file"
+  done
+}
+
+# Dispatch stays deliberately boring. A new picker should mostly mean adding a
+# source module and one case branch here.
+case "${1:-project}" in
+  project|projects|new) pick-project ;;
+  zoxide|z) pick-zoxide ;;
+  sessions|session|active) pick-session ;;
+  list-projects) shift; list-projects "${1:-}" ;;
+  list-zoxide) list-zoxide ;;
+  open-path)
+    shift
+    [[ $# -gt 0 ]] || { usage >&2; exit 1; }
+    open-path "$1"
+    ;;
+  --help|-h|help) usage ;;
+  *) usage >&2; exit 1 ;;
+esac

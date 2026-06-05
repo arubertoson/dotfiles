@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(dirname ${BASH_SOURCE[0]})"
-SCRIPT_DIR="$ROOT/scripts"
+SCRIPT_DIR="$ROOT/../scripts"
 XDG_BIN_HOME="${XDG_BIN_HOME:-$HOME/.local/bin}"
 
 log() { printf "\033[1;36m[40-scripts]\033[0m %s\n" "$*"; }
