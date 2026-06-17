@@ -1,0 +1,80 @@
+#autoload
+
+dev-new() {
+  emulate -L zsh
+
+  local location="home"
+  local git="1"
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --git)
+        git="1"
+        shift
+        ;;
+      --no-git)
+        git="0"
+        shift
+        ;;
+      -h|--help)
+        echo "usage: dev-new [location] <repo|user/repo|provider/user/repo> [--git|--no-git]" >&2
+        return 0
+        ;;
+      --*)
+        echo "unknown option: $1" >&2
+        return 1
+        ;;
+      *)
+        break
+        ;;
+    esac
+  done
+
+  local name
+  if [[ $# -eq 1 ]]; then
+    name="$1"
+  elif [[ $# -eq 2 ]]; then
+    location="$1"
+    name="$2"
+  else
+    echo "usage: dev-new [location] <repo|user/repo|provider/user/repo> [--git|--no-git]" >&2
+    return 1
+  fi
+
+  local provider="${DEV_DEFAULT_REMOTE:-github.com}"
+  local user="${DEV_DEFAULT_USER:-${GITHUB_USER_HOME:-$USER}}"
+  local repo="$name"
+
+  if [[ "$name" == */*/* ]]; then
+    provider="${name%%/*}"
+    local rest="${name#*/}"
+    user="${rest%%/*}"
+    repo="${rest#*/}"
+  elif [[ "$name" == */* ]]; then
+    user="${name%%/*}"
+    repo="${name#*/}"
+  fi
+
+  if [[ -z "$provider" || -z "$user" || -z "$repo" || "$repo" == */* ]]; then
+    echo "invalid project name: $name" >&2
+    return 1
+  fi
+
+  local dev="${XDG_DEV_HOME:-$HOME/dev}"
+  local dest="$dev/$location/$provider/$user/$repo"
+
+  if [[ -e "$dest" ]]; then
+    echo "already exists: $dest" >&2
+    cd "$dest"
+    return
+  fi
+
+  mkdir -p "$dest" || return 1
+
+  if [[ "$git" == "1" ]]; then
+    git -C "$dest" init || return 1
+  fi
+
+  cd "$dest" || return 1
+  echo "created project: $dest"
+}

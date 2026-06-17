@@ -1,0 +1,63 @@
+#autoload
+
+dev-scratch() {
+  emulate -L zsh
+
+  local git="0"
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --git)
+        git="1"
+        shift
+        ;;
+      --no-git)
+        git="0"
+        shift
+        ;;
+      -h|--help)
+        echo "usage: dev-scratch <name> [--git|--no-git]" >&2
+        return 0
+        ;;
+      --*)
+        echo "unknown option: $1" >&2
+        return 1
+        ;;
+      *)
+        break
+        ;;
+    esac
+  done
+
+  if [[ $# -ne 1 ]]; then
+    echo "usage: dev-scratch <name> [--git|--no-git]" >&2
+    return 1
+  fi
+
+  local name="$1"
+  local slug="${name//[^A-Za-z0-9._-]/-}"
+
+  if [[ -z "$slug" ]]; then
+    echo "invalid scratch name: $name" >&2
+    return 1
+  fi
+
+  local dev="${XDG_DEV_HOME:-$HOME/dev}"
+  local stamp="$(date +%Y-%m-%d)"
+  local dest="$dev/scratch/$stamp-$slug"
+  local next=2
+
+  while [[ -e "$dest" ]]; do
+    dest="$dev/scratch/$stamp-$slug-$next"
+    (( next++ ))
+  done
+
+  mkdir -p "$dest" || return 1
+
+  if [[ "$git" == "1" ]]; then
+    git -C "$dest" init || return 1
+  fi
+
+  cd "$dest" || return 1
+  echo "created scratch: $dest"
+}
