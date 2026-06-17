@@ -1,166 +1,73 @@
-#!/usr/bin/env bash
-# Minimal Bash/Zsh wrapper + presets
-# - Only handles -e/--edit and -c/--continue
-# - Everything else is treated as the user message (no foreign flags)
-# - Presets add their own -s (and optional -m) internally
-# - If you want fancy flag soup, use the raw `llm` CLI directly
+#!/bin/zsh
+# pi quick-question helpers
+#
+# q  = one-off, no saved session
+# qq = saved session, for follow-up with qc
+# qc = continue previous saved quick-question session
 
-_llm_die() { printf '%s\n' "llm-quick: $*" >&2; return 1; }
-_llm_has_stdin() { [ ! -t 0 ]; }
-_llm_silent_remove() { command rm -f -- "$1" >/dev/null 2>&1 }
+: "${PI_Q_PROVIDER:=openai-codex}"
+: "${PI_Q_MODEL:=gpt-5.4-mini}"
+: "${PI_Q_THINKING:=off}"
+: "${PI_Q_SYSTEM:=Answer concisely, prefer clarity over cleverness and sacrifice grammar for concision.}"
+: "${PI_Q_SESSION_NAME:=quick question}"
 
-_llm_editor() {
-  if [ -n "${EDITOR:-}" ]; then printf '%s' "$EDITOR"
-  elif [ -n "${VISUAL:-}" ]; then printf '%s' "$VISUAL"
-  elif command -v nano >/dev/null 2>&1; then printf 'nano'
-  elif command -v vim  >/dev/null 2>&1; then printf 'vim'
-  else printf 'vi'; fi
+unalias q qq qc 2>/dev/null
+
+_pi-q-die() {
+  printf '%s\n' "pi-q: $*" >&2
+  return 1
 }
 
-# Print a Markdown preview to STDERR so it doesn't mix with llm's stdout.
-# Usage: printf '%s' "$content" | _llm_preview "Prompt"
-_llm_preview() {
-  local title="${1:-Prompt}"
+_pi-q-has-stdin() {
+  [ ! -t 0 ]
+}
 
-  # Header to stderr
-  {
-    printf '\n'
-    printf '## %s\n\n' "$title"
-  } >&2
+_pi-q-run() {
+  local mode="$1"
+  shift
 
-  # Render stdin to stderr with glow/bat/cat
-  if command -v glow >/dev/null 2>&1; then
-    glow - >&2
-  else
-    cat - >&2
+  local input=""
+  local -a prompt=( "$@" )
+  local -a session=()
+
+  if _pi-q-has-stdin; then
+    input="$(cat)"
   fi
 
-  # Divider to keep output readable
-  printf '\n%s\n\n' '———' >&2
-}
-
-# Internal runner used by both the generic llm() and all presets.
-# Args:
-#   $1: "true"|"false" use_editor
-#   $2: "true"|"false" use_continue
-#   $3: preset_system (empty OK)
-#   $4: preset_model  (empty OK)
-#   $5..: user message tokens
-_llm_run() {
-  local use_editor="$1"; shift
-  local use_continue="$1"; shift
-  local preset_system="$1"; shift
-  local preset_model="$1"; shift
-  local -a message=( "$@" )
-
-  # Build fixed flags for the real CLI call (no passthrough from user)
-  local -a fixed=()
-  if [ -n "$preset_system" ]; then fixed+=( -s "$preset_system" ); fi
-  if [ -n "$preset_model" ];  then fixed+=( -m "$preset_model" );  fi
-  if [ "$use_continue" = true ]; then fixed+=( -c ); fi
-
-  if [ "$use_editor" = true ]; then
-    # Prefill: stdin > message > empty
-    local tmp; tmp="$(mktemp "${TMPDIR:-/tmp}/llm-edit.XXXXXX.md")" || return 1
-    if _llm_has_stdin; then
-      cat >"$tmp"
-    elif [ "${#message[@]}" -gt 0 ]; then
-      printf '%s' "${message[*]}" >"$tmp"
-    else
-      : >"$tmp"
-    fi
-
-    "$(_llm_editor)" "$tmp" || { _llm_silent_remove "$tmp"; return 1; }
-    local edited; edited="$(cat "$tmp")"
-    _llm_silent_remove "$tmp"
-
-    [ -z "$edited" ] && _llm_die "empty editor content; nothing to send." && return 1
-
-    if [ "${LLM_PREVIEW:1}" != 0 ]; then
-      printf "%s" "$edited" | _llm_preview "Prompt"
-    fi
-
-    printf '%s' "$edited" | command llm "${fixed[@]}" | glow
-    return $?
-  else
-    # Non-editor: stdin piped if present, message as args if present, else error
-    if _llm_has_stdin; then
-      if [ "${#message[@]}" -gt 0 ]; then
-        command llm "${fixed[@]}" "${message[@]}"
-      else
-        command llm "${fixed[@]}"
-      fi
-    else
-      [ "${#message[@]}" -eq 0 ] && _llm_die "no input provided. Use a message, pipe stdin, or -e." && return 1
-      command llm "${fixed[@]}" "${message[@]}"
-    fi
+  if [ -n "$input" ] && [ "${#prompt[@]}" -gt 0 ]; then
+    prompt=( "$input" "${prompt[@]}" )
+  elif [ -n "$input" ]; then
+    prompt=( "$input" )
   fi
-}
 
+  [ "${#prompt[@]}" -eq 0 ] && _pi-q-die "no input provided" && return 1
 
-# ---------------- Presets (fixed instructions, optional model) ----------------
-# If you WANT to force a model, set env vars; otherwise we don't pass -m at all.
-# Examples:
-#   export LLM_Q_MODEL="openai:gpt-4o-mini"
-#   export LLM_SMART_MODEL="openai:gpt-4o"
-: "${LLM_Q_MODEL:="gpt-5.4-mini"}"
-: "${LLM_Q_CODE_MODEL:="openrouter/openai/gpt-5-codex"}"
-: "${LLM_SMART_MODEL:="openrouter/openai/gpt-5"}"
+  case "$mode" in
+    once) session=( --no-session ) ;;
+    new) session=( --name "$PI_Q_SESSION_NAME" ) ;;
+    continue) session=( --continue ) ;;
+    *) _pi-q-die "unknown mode '$mode'"; return 1 ;;
+  esac
 
-# Each preset only parses -e/-c and treats the rest as message text.
-
-_q_like() {
-  local preset_system="$1"; shift
-  local preset_model="$1"; shift
-
-  local use_editor=false
-  local use_continue=false
-  local -a msg=()
-
-  while [ "$#" -gt 0 ]; do
-    case "$1" in
-      -e|--edit|--editor) use_editor=true; shift ;;
-      -c|--continue)      use_continue=true; shift ;;
-      -*)                 _llm_die "unsupported flag '$1'. Only -e/--edit and -c/--continue are allowed."; return 1 ;;
-      *)                  msg+=( "$1" ); shift ;;
-    esac
-  done
-
-  _llm_run "$use_editor" "$use_continue" "$preset_system" "$preset_model" "${msg[@]}"
+  command pi \
+    --provider "$PI_Q_PROVIDER" \
+    --model "$PI_Q_MODEL" \
+    --thinking "$PI_Q_THINKING" \
+    --system-prompt "$PI_Q_SYSTEM" \
+    --no-tools \
+    -p \
+    "${session[@]}" \
+    "${prompt[@]}"
 }
 
 q() {
-  _q_like "Answer concisely, prefer clarity over cleverness and sacrifice grammar for consision." "${LLM_Q_MODEL}" "$@"
+  _pi-q-run once "$@"
 }
 
-alias qc='q -c'
-
-translate() {
-  _q_like "Translate precisely. Preserve meaning, tone, and formatting. If ambiguous, choose the most natural phrasing and note brief alternatives." "${LLM_Q_MODEL}" "$@"
+qq() {
+  _pi-q-run new "$@"
 }
 
-audit() {
-  _q_like "Senior reviewer. Structure: Findings → Risks → Recommendations → Quick Wins. Be concrete, actionable, and terse." "${LLM_Q_CODE_MODEL}" "$@"
+qc() {
+  _pi-q-run continue "$@"
 }
-
-refactor() {
-  _q_like "Refactor for simplicity, safety, and testability. Keep behavior identical unless asked. Summarize tradeoffs briefly." "${LLM_SMART_MODEL}" "$@"
-}
-
-docs() {
-  _q_like "Write clear documentation with examples and a short troubleshooting section. No fluff." "${LLM_Q_MODEL}" "$@"
-}
-
-# Optional short aliases
-alias tq='translate'
-alias qa='audit'
-
-# ---------------- Usage crib ----------------
-# q "how do I create a loop in lua"
-# q -c "what about pairs instead?"
-# q -e
-# q "long text I want to edit" -e
-# cat file.lua | q "on line 11 there is funky business"
-# cat file.lua | q -e
-# cat file.lua | q -c -e
-# q -c -e
