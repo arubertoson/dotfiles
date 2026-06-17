@@ -37,7 +37,9 @@ Usage:
   repo list
 
 Environment Variables:
-  GITHUB_USER    - Your GitHub username (required for creating user repos)
+  GITHUB_USER_HOME - Personal GitHub username (required for creating home repos)
+  GITHUB_USER_WORK - Work GitHub username/org (optional; used for work repos)
+  GITHUB_USER      - Backwards-compatible fallback for GITHUB_USER_HOME
 
 Notes:
   - Shorthand owner/repo uses SSH: git@github.com:owner/repo.git (personal) or git@github.work:owner/repo.git (work)
@@ -59,13 +61,21 @@ norm_repo() {
 }
 
 gh_user() {
-  if [[ -z ${GITHUB_USER:-} ]]; then
-    log_error "GITHUB_USER environment variable is not set"
-    log_error "Please set it with: export GITHUB_USER=your_github_username"
+  local profile=${1:-home}
+  local user=""
+
+  case "$profile" in
+    work) user="${GITHUB_USER_WORK:-}" ;;
+    *)    user="${GITHUB_USER_HOME:-${GITHUB_USER:-}}" ;;
+  esac
+
+  if [[ -z $user ]]; then
+    log_error "GitHub user is not set for profile: $profile"
+    log_error "Set GITHUB_USER_HOME/GITHUB_USER_WORK in ~/.env"
     exit 1
   fi
 
-  echo "$GITHUB_USER"
+  echo "$user"
 }
 
 choose_root() {
@@ -118,18 +128,17 @@ create_cmd() {
     owner_repo=$(norm_repo "$name")
     default_profile=work
   else
-    if [[ -z ${GITHUB_USER:-} ]]; then
-      log_error "GITHUB_USER environment variable is not set"
-      log_error "Please set it with: export GITHUB_USER=your_github_username"
-      exit 1
-    fi
-    local user="$GITHUB_USER"
-    owner_repo="${user}/$name"
     default_profile=home
   fi
 
   # Set profile if not specified
   [[ -z $profile ]] && profile=$default_profile
+
+  if [[ $name != */* ]]; then
+    local user
+    user=$(gh_user "$profile")
+    owner_repo="${user}/$name"
+  fi
 
   # Get paths and settings
   root=$(choose_root "$profile")
