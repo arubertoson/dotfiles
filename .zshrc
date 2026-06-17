@@ -33,7 +33,13 @@ eval "$("$HOME/.local/bin/mise" activate zsh --shims)"
 znap fpath _mise '~/.local/bin/mise completions zsh'
 znap eval zoxide 'zoxide init zsh'
 
-# Don't want to ahve the fzf plugin when we are handling the binary differntly...
-# The setup though :(
-znap eval fzf 'fzf --zsh'
-source "$ZDOTDIR/rc.d/conf.plug/fzf.zsh"
+start-tmux() {
+  [[ "${AUTO_TMUX:-1}" == 1 ]] || return
+  [[ -z "${TMUX:-}" ]] || return
+  [[ "${TERM:-}" != dumb ]] || return
+  command -v tmux >/dev/null 2>&1 || return
+
+  exec tmux new-session -A -s main
+}
+
+start-tmux
