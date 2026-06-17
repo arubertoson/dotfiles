@@ -1,5 +1,5 @@
 usage() {
-  print -r -- 'usage: tmux-workspace [project|zoxide|sessions|list-projects|list-zoxide|open-path PATH]'
+  print -r -- 'usage: tmux-workspace [project|zoxide|sessions|list-projects|list-zoxide|open-path|restore-path PATH]'
 }
 
 fd-cmd() {
@@ -57,7 +57,8 @@ pattern-path() {
 
 session-name() {
   local dir="$1"
-  local name="${dir:t}"
+  local parent="${dir:h:t}"
+  local name="${parent}-${dir:t}"
 
   name="${name//./_}"
   name="${name//:/_}"
@@ -82,6 +83,33 @@ windows-for() {
   print -r -- 'code misc'
 }
 
+restore-session-layout() {
+  local dir="$1"
+  local session="$2"
+  local index name windows
+  typeset -a names existing
+
+  windows="$(windows-for "$dir")"
+  names=(${=windows})
+  [[ ${#names[@]} -gt 0 ]] || names=(code misc)
+
+  existing=(${(f)"$(tmux list-windows -t "$session" -F '#W' 2>/dev/null || true)"})
+
+  for (( index = 1; index <= ${#names[@]}; index++ )); do
+    name="${names[$index]}"
+
+    if (( ${existing[(Ie)$name]} )); then
+      continue
+    fi
+
+    if tmux list-windows -t "$session:$index" >/dev/null 2>&1; then
+      continue
+    fi
+
+    tmux new-window -d -t "$session:$index" -n "$name" -c "$dir"
+  done
+}
+
 ensure-session() {
   local dir="$1"
   local session window windows
@@ -90,6 +118,7 @@ ensure-session() {
   session="$(session-name "$dir")"
 
   if tmux has-session -t="$session" 2>/dev/null; then
+    restore-session-layout "$dir" "$session"
     print -r -- "$session"
     return
   fi
