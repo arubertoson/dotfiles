@@ -5,35 +5,36 @@ PIP_DISABLE_PIP_VERSION_CHECK = "1"
 [tools]
 # Runtimes (fallbacks; projects still pin their own)
 node   = "lts"
+pnpm   = "11.5.2"
 python = "3.12.9"
 go     = "1.25.1"
 zig    = "0.15.1"
 rust   = "stable"
-odin   = "dev-2025-09"
+odin   = "dev-2026-05"
 clang  = "21.1.1"
 tmux   = "latest"
-zellij = "0.43.1"
 luajit = "2.1.ROLLING"
 jq     = "1.8.1"
+
 process-compose = "1.94"
 
 jujutsu = "latest"
 jujutsu-ui = "latest"
 
-# "cargo:https://github.com/Dutch-Raptor/GAT-GWM" = { "version" = "0.4.0" }
-
 yt-dlp = "2025.10.22"
 deno = "2"
 bun = "latest"
 
+ast-grep = "0.43.0"
+
 # CLU utils
+"github:dmtrKovalenko/fff"	= "0.9.4"
 "github:XAMPPRocky/tokei"	      = "12.1.2"
 "github:jdx/usage"		      = "2.2.2"
-# "github:oven-sh/bun"             = "bun-v1.2.22"
 "github:chmln/sd"		      = "1.0.0"
 "github:x-motemen/ghq"	      = "1.8.0"
 "github:joshmedeski/sesh"	      = "2.26.2"
-"github:alexpasmantier/television"	      = { version = "0.15.7", extract_all = "true" }
+"github:charmbracelet/glow"	      = { version = "2.1.2", extract_all = "true" }
 "github:cli/cli"		      = { version = "2.89.0", exe = "gh" }
 "github:neovim/neovim"	      = { version = "nightly", extract_all= "true", bin_path = "nvim-linux-x86_64/bin" }
 "github:astral-sh/uv"            = { version = "0.11.17", extract_all = "true" }
