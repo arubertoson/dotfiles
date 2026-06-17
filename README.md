@@ -6,6 +6,7 @@ To set up this zsh configuration:
 2. Run `just bootstrap` to set up the environment
   - If this is the first run, you'll have to run using bash shell `./bootstrap`
 3. Create a symbolic link of `.zshenv` to your home directory
+4. Optionally copy `.env.example` to `~/.env` after `gh auth login` and fill in local values
 
 ## Project Architecture
 
