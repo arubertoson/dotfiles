@@ -12,6 +12,14 @@
 # Enable the use of Ctrl-Q and Ctrl-S for keyboard shortcuts.
 unsetopt FLOW_CONTROL
 
+# Ctrl-D to noop to avoid exiting the shell (so fucking tired of doing it)
+noop() {}
+zle -N noop
+
+bindkey -M main '^d' noop
+bindkey -M viins '^d' noop
+bindkey -M emacs '^d' noop
+
 # Alt-Q
 # - On the main prompt: Push aside your current command line, so you can type a
 #   new one. The old command line is re-inserted when you press Alt-G or
@@ -20,53 +28,28 @@ unsetopt FLOW_CONTROL
 #   you can edit the previous lines.
 bindkey '^[q' push-line-or-edit
 
-# Alt-H: Get help on your current command.
-() {
-  unalias $1 2> /dev/null   # Remove the default.
-
-  # Load the more advanced version.
-  # -R resolves the function immediately, so we can access the source dir.
-  autoload -RUz $1
-
-  # Load $functions_source, an associative array (a.k.a. dictionary, hash table
-  # or map) that maps each function to its source file.
-  zmodload -F zsh/parameter p:functions_source
-
-  # Lazy-load all the run-help-* helper functions from the same dir.
-  autoload -Uz $functions_source[$1]-*~*.zwc  # Exclude .zwc files.
-} run-help
-
-# Alt-V: Show the next key combo's terminal code and state what it does.
-bindkey '^[v' describe-key-briefly
-
-# Alt-W: Type a widget name and press Enter to see the keys bound to it.
-# Type part of a widget name and press Enter for autocompletion.
-bindkey '^[w' where-is
-
-# Alt-Shift-S: Prefix the current or previous command line with `sudo`.
-() {
-  bindkey '^[S' $1  # Bind Alt-Shift-S to the widget below.
-  zle -N $1         # Create a widget that calls the function below.
-  $1() {            # Create the function.
-    # If the command line is empty or just whitespace, then first load the
-    # previous line.
-    [[ $BUFFER == [[:space:]]# ]] &&
-        zle .up-history
-
-    # $LBUFFER is the part of the command line that's left of the cursor. This
-    # way, we preserve the cursor's position.
-    LBUFFER="sudo $LBUFFER"
-  }
-} .sudo
-
-# Command line editor
+# Command line edit with editor
 autoload -Uz edit-command-line
 zle -N edit-command-line
-
 bindkey '^X^E' edit-command-line
 
-bindkey -M viins '^a' beginning-of-line
-bindkey -M viins '^d' push-line-or-edit
+# fzf widgets
+if (( ${+functions[fzf-history]} )); then
+  zle -N fzf-history
+  bindkey -M vicmd '^Xr' fzf-history
+fi
 
-bindkey '^p' history-search-backward
-bindkey '^n' history-search-forward
+if (( ${+functions[fzf-echo-env]} )); then
+  zle -N fzf-echo-env
+  bindkey -M vicmd '^Xe' fzf-echo-env
+fi
+
+if (( ${+functions[fzf-change-to-dev-project]} )); then
+  zle -N fzf-change-to-dev-project
+  bindkey -M vicmd '^Xp' fzf-change-to-dev-project
+fi
+
+if (( ${+functions[fzf-change-to-zoxide-directory]} )); then
+  zle -N fzf-change-to-zoxide-directory
+  bindkey -M vicmd '^Xz' fzf-change-to-zoxide-directory
+fi

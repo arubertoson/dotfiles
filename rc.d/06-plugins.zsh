@@ -8,7 +8,6 @@
 local -a plugins=(
     marlonrichert/zcolors
 
-    
     hlissner/zsh-autopair               # Auto-pair quotes and parenthesis
     adrieankhisbe/zsh-quiet-accept-line # run comands without outputting to the prompt
 
@@ -40,5 +39,9 @@ for p in $plugins; do
 
   znap source $p
 done
+
+if command -v fzf >/dev/null 2>&1; then
+  source "$(dirname "$(realpath "$0")")/conf.plug/fzf.zsh"
+fi
 
 znap eval zcolors zcolors
