@@ -53,12 +53,19 @@ dev-clone() {
 
   if [[ -e "$dest" ]]; then
     echo "already exists: $dest" >&2
-    cd "$dest"
+  else
+    mkdir -p "${dest:h}" || return 1
+    git clone "$clone" "$dest" || return 1
+    echo "cloned repo to: $dest"
+  fi
+
+  local workspace
+  workspace="$(command -v tmux-workspace 2>/dev/null || command -v tws 2>/dev/null || true)"
+
+  if [[ -n "$workspace" ]]; then
+    "$workspace" open-path "$dest"
     return
   fi
 
-  mkdir -p "${dest:h}" || return 1
-  git clone "$clone" "$dest" || return 1
-
-  echo "cloned repo to: $dest"
+  cd "$dest"
 }
