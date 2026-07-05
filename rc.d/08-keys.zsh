@@ -36,6 +36,9 @@ bindkey '^X^E' edit-command-line
 # fzf widgets
 if (( ${+functions[fzf-history]} )); then
   zle -N fzf-history
+  bindkey -M main '^r' fzf-history
+  bindkey -M viins '^r' fzf-history
+  bindkey -M emacs '^r' fzf-history
   bindkey -M vicmd '^Xr' fzf-history
 fi
 
