@@ -21,9 +21,11 @@ process-compose = "1.94"
 jujutsu = "latest"
 jujutsu-ui = "latest"
 
-yt-dlp = "2025.10.22"
+yt-dlp = "2026.06.09"
 deno = "2"
 bun = "latest"
+
+hunk = "0.16.0"
 
 ast-grep = "0.43.0"
 
