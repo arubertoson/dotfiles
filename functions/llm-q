@@ -27,20 +27,20 @@ _pi-q-run() {
   shift
 
   local input=""
-  local -a prompt=( "$@" )
+  local -a argv=( "$@" )
   local -a session=()
 
   if _pi-q-has-stdin; then
     input="$(cat)"
   fi
 
-  if [ -n "$input" ] && [ "${#prompt[@]}" -gt 0 ]; then
-    prompt=( "$input" "${prompt[@]}" )
+  if [ -n "$input" ] && [ "${#argv[@]}" -gt 0 ]; then
+    argv=( "$input" "${argv[@]}" )
   elif [ -n "$input" ]; then
-    prompt=( "$input" )
+    argv=( "$input" )
   fi
 
-  [ "${#prompt[@]}" -eq 0 ] && _pi-q-die "no input provided" && return 1
+  [ "${#argv[@]}" -eq 0 ] && _pi-q-die "no input provided" && return 1
 
   case "$mode" in
     once) session=( --no-session ) ;;
@@ -57,7 +57,7 @@ _pi-q-run() {
     --no-tools \
     -p \
     "${session[@]}" \
-    "${prompt[@]}"
+    "${argv[@]}"
 }
 
 q() {
