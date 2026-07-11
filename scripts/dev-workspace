@@ -19,7 +19,8 @@ fi
 
 usage() {
   cat <<'USAGE'
-usage: dev-workspace [project|zoxide|sessions|toggle|slot SLOT|open-path PATH|cleanup]
+usage: dev-workspace [project|zoxide|sessions|windows|toggle|cleanup]
+       dev-workspace [slot SLOT|new SLOT|open-path PATH]
 
 Environment:
   DEV_WORKSPACE_BACKEND    niri or tmux; auto-detected by default
@@ -427,34 +428,25 @@ niri-pick-zoxide() {
   niri-open-path "$(selected-path "$selection")"
 }
 
-niri-slot() {
-  require niri
-  require jq
-  require ghostty
-  require sha1sum
-
+slot-meta() {
   local slot_arg="${1:-dev}"
-  local slot
-  local index
+
+  case "$slot_arg" in
+    1|dev|code|editor) printf 'dev\t1\n' ;;
+    2|term|terminal|shell) printf 'term\t2\n' ;;
+    3|pi|agent) printf 'agent\t3\n' ;;
+    4|serv|server) printf 'serv\t4\n' ;;
+    *) echo "dev-workspace: unknown slot: $slot_arg" >&2; exit 2 ;;
+  esac
+}
+
+niri-dev-context() {
   local focused
   local ws_id
   local ws_name
   local project
   local file
   local hash
-  local class
-  local name
-  local existing
-  local win
-  local ghostty_args=(--confirm-close-surface=false)
-
-  case "$slot_arg" in
-    1|dev|code|editor) slot=dev; index=1 ;;
-    2|term|terminal|shell) slot=term; index=2 ;;
-    3|pi|agent) slot=agent; index=3 ;;
-    4|serv|server) slot=serv; index=4 ;;
-    *) echo "dev-workspace: unknown slot: $slot_arg" >&2; exit 2 ;;
-  esac
 
   focused="$(niri-focused-workspace)"
   ws_id="$(jq -r '.id' <<<"$focused")"
@@ -475,6 +467,91 @@ niri-slot() {
   [[ -d "$project" ]] || { echo "dev-workspace: project missing: $project" >&2; exit 1; }
 
   hash="$(printf '%s' "$ws_name" | sha1sum | awk '{print substr($1,1,12)}')"
+  printf '%s\t%s\t%s\t%s\n' "$ws_id" "$ws_name" "$project" "$hash"
+}
+
+niri-spawn-slot() {
+  local slot="$1"
+  local class="$2"
+  local project="$3"
+  local title="$4"
+  local ghostty_args=(--confirm-close-surface=false)
+
+  case "$slot" in
+    dev)
+      AUTO_TMUX=0 ghostty "${ghostty_args[@]}" --class="$class" --working-directory="$project" \
+        --title="$title" -e env AUTO_TMUX=0 sh -lc '${EDITOR:-nvim} .; exec ${SHELL:-sh}' &
+      ;;
+    term)
+      AUTO_TMUX=0 ghostty "${ghostty_args[@]}" --class="$class" --working-directory="$project" \
+        --title="$title" &
+      ;;
+    agent)
+      AUTO_TMUX=0 ghostty "${ghostty_args[@]}" --class="$class" --working-directory="$project" \
+        --title="$title" -e env AUTO_TMUX=0 sh -lc \
+        'if command -v pi >/dev/null 2>&1; then pi; fi; exec ${SHELL:-sh}' &
+      ;;
+    serv)
+      AUTO_TMUX=0 ghostty "${ghostty_args[@]}" --class="$class" --working-directory="$project" \
+        --title="$title" -e env AUTO_TMUX=0 sh -lc \
+        'if command -v just >/dev/null 2>&1; then just; fi; exec ${SHELL:-sh}' &
+      ;;
+  esac
+}
+
+niri-wait-window() {
+  local ws_id="$1"
+  local class="$2"
+  local index="${3:-}"
+  local win
+
+  for _ in $(seq 1 40); do
+    sleep 0.05
+    win="$(
+      niri msg -j windows |
+        jq -r --argjson ws "$ws_id" --arg class "$class" \
+          '.[] | select(.workspace_id == $ws and .app_id == $class) | .id' |
+        head -n1
+    )"
+
+    if [[ -n "$win" ]]; then
+      niri msg action focus-window --id "$win" >/dev/null 2>&1 || true
+      if [[ -n "$index" ]]; then
+        niri msg action move-column-to-index "$index" >/dev/null 2>&1 || true
+      fi
+      return
+    fi
+  done
+}
+
+niri-slot() {
+  require niri
+  require jq
+  require ghostty
+  require sha1sum
+
+  local meta
+  local slot
+  local index
+  local context
+  local ws_id
+  local project
+  local hash
+  local class
+  local name
+  local existing
+
+  meta="$(slot-meta "${1:-dev}")"
+  slot="${meta%%$'\t'*}"
+  index="${meta#*$'\t'}"
+
+  context="$(niri-dev-context)"
+  ws_id="${context%%$'\t'*}"
+  context="${context#*$'\t'}"
+  context="${context#*$'\t'}"
+  project="${context%%$'\t'*}"
+  hash="${context##*$'\t'}"
+
   class="dev.macke.niri.h${hash}.${slot}"
   name="$(basename "$project")"
 
@@ -491,42 +568,107 @@ niri-slot() {
     return
   fi
 
-  case "$slot" in
-    dev)
-      AUTO_TMUX=0 ghostty "${ghostty_args[@]}" --class="$class" --working-directory="$project" \
-        --title="$name:dev" -e env AUTO_TMUX=0 sh -lc '${EDITOR:-nvim} .; exec ${SHELL:-sh}' &
+  niri-spawn-slot "$slot" "$class" "$project" "$name:$slot"
+  niri-wait-window "$ws_id" "$class" "$index"
+}
+
+niri-new() {
+  require niri
+  require jq
+  require ghostty
+  require sha1sum
+
+  local meta
+  local slot
+  local context
+  local ws_id
+  local project
+  local hash
+  local class
+  local name
+
+  meta="$(slot-meta "${1:-term}")"
+  slot="${meta%%$'\t'*}"
+
+  context="$(niri-dev-context)"
+  ws_id="${context%%$'\t'*}"
+  context="${context#*$'\t'}"
+  context="${context#*$'\t'}"
+  project="${context%%$'\t'*}"
+  hash="${context##*$'\t'}"
+
+  class="dev.macke.niri.h${hash}.${slot}.x$(date +%s%N)"
+  name="$(basename "$project")"
+
+  niri-spawn-slot "$slot" "$class" "$project" "$name:$slot+"
+  niri-wait-window "$ws_id" "$class"
+}
+
+niri-windows() {
+  require niri
+  require jq
+
+  local focused
+  local ws_id
+  local selection
+  local id
+
+  focused="$(niri-focused-workspace)"
+  ws_id="$(jq -r '.id' <<<"$focused")"
+  [[ -n "$ws_id" ]] || return 0
+
+  selection="$(
+    niri msg -j windows |
+      jq -r --argjson ws "$ws_id" '
+        .[] | select(.workspace_id == $ws) |
+          [(.title // "(untitled)"), (.app_id // "?"), (.id | tostring)] |
+          @tsv
+      ' |
+      pick-lines 'window >'
+  )" || return 0
+
+  [[ -n "$selection" ]] || return 0
+  id="${selection##*$'\t'}"
+  niri msg action focus-window --id "$id"
+}
+
+tmux-new() {
+  require tmux
+
+  case "${1:-term}" in
+    1|dev|code|editor)
+      tmux new-window -c "#{pane_current_path}" -n dev \
+        '${EDITOR:-nvim} .; exec ${SHELL:-sh}'
       ;;
-    term)
-      AUTO_TMUX=0 ghostty "${ghostty_args[@]}" --class="$class" --working-directory="$project" \
-        --title="$name:term" &
+    2|term|terminal|shell)
+      tmux new-window -c "#{pane_current_path}" -n term
       ;;
-    agent)
-      AUTO_TMUX=0 ghostty "${ghostty_args[@]}" --class="$class" --working-directory="$project" \
-        --title="$name:agent" -e env AUTO_TMUX=0 sh -lc \
-        'if command -v pi >/dev/null 2>&1; then pi; fi; exec ${SHELL:-sh}' &
+    3|pi|agent)
+      tmux new-window -c "#{pane_current_path}" -n agent \
+        'if command -v pi >/dev/null 2>&1; then pi; fi; exec ${SHELL:-sh}'
       ;;
-    serv)
-      AUTO_TMUX=0 ghostty "${ghostty_args[@]}" --class="$class" --working-directory="$project" \
-        --title="$name:serv" -e env AUTO_TMUX=0 sh -lc \
-        'if command -v just >/dev/null 2>&1; then just; fi; exec ${SHELL:-sh}' &
+    4|serv|server)
+      tmux new-window -c "#{pane_current_path}" -n serv \
+        'if command -v just >/dev/null 2>&1; then just; fi; exec ${SHELL:-sh}'
       ;;
+    *) echo "dev-workspace: unknown slot: $1" >&2; exit 2 ;;
   esac
+}
 
-  for _ in $(seq 1 40); do
-    sleep 0.05
-    win="$(
-      niri msg -j windows |
-        jq -r --argjson ws "$ws_id" --arg class "$class" \
-          '.[] | select(.workspace_id == $ws and .app_id == $class) | .id' |
-        head -n1
-    )"
+tmux-windows() {
+  require tmux
 
-    if [[ -n "$win" ]]; then
-      niri msg action focus-window --id "$win" >/dev/null 2>&1 || true
-      niri msg action move-column-to-index "$index" >/dev/null 2>&1 || true
-      return
-    fi
-  done
+  local selection
+  local index
+
+  selection="$(
+    tmux list-windows -F '#I\t#W\t#{pane_current_command}' |
+      pick-lines 'window >'
+  )" || return 0
+  [[ -n "$selection" ]] || return 0
+
+  index="${selection%%$'\t'*}"
+  tmux select-window -t "$index"
 }
 
 tmux-dispatch() {
@@ -534,11 +676,13 @@ tmux-dispatch() {
   export TMUX_WORKSPACE_FZF_DEFAULT_OPTS="${TMUX_WORKSPACE_FZF_DEFAULT_OPTS:-$FZF_OPTS}"
 
   case "${1:-project}" in
-    project|projects|new) exec tmux-workspace project ;;
+    project|projects) exec tmux-workspace project ;;
     zoxide|z) exec tmux-workspace zoxide ;;
     sessions|session|active) exec tmux-workspace sessions ;;
+    windows|window|win) tmux-windows ;;
     open-path|restore-path) shift; exec tmux-workspace open-path "$@" ;;
     toggle|previous|back) require tmux; tmux switch-client -l ;;
+    new) shift; tmux-new "${1:-term}" ;;
     slot)
       shift
       require tmux
@@ -558,11 +702,13 @@ tmux-dispatch() {
 
 niri-dispatch() {
   case "${1:-project}" in
-    project|projects|new) niri-pick-project ;;
+    project|projects) niri-pick-project ;;
     zoxide|z) niri-pick-zoxide ;;
     sessions|session|active) niri-sessions ;;
+    windows|window|win) niri-windows ;;
     toggle|previous|back) niri-toggle-workspace ;;
     clean|cleanup|orphans) niri-clean-orphans ;;
+    new) shift; niri-new "${1:-term}" ;;
     slot) shift; niri-slot "${1:-dev}" ;;
     open-path|restore-path)
       shift

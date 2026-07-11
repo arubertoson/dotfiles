@@ -76,7 +76,9 @@ Existing directories are moved to `*.backup.<timestamp>` before linking.
 
 `dev-workspace` is the backend-neutral project/session launcher.
 
-* Local niri/Ghostty flow: `dev-workspace project`, `dev-workspace sessions`, `dev-workspace slot dev|term|agent`.
+* Local niri/Ghostty flow: `dev-workspace project`, `dev-workspace sessions`,
+  `dev-workspace windows`, `dev-workspace slot dev|term|agent`,
+  `dev-workspace new dev|term|agent`.
 * tmux flow: set `DEV_WORKSPACE_BACKEND=tmux` or run inside tmux; the command delegates to `tmux-workspace`.
 * Projects are discovered under `$XDG_DEV_HOME`/`~/dev` by looking for Git (`.git`) and Jujutsu (`.jj`) repositories.
 * In Ghostty, auto-tmux is skipped unless `AUTO_TMUX=1` is explicitly set, preserving direct terminal protocols for local workspaces.
@@ -84,12 +86,16 @@ Existing directories are moved to `*.backup.<timestamp>` before linking.
 Recommended niri bindings:
 
 ```kdl
-Alt+S { spawn "dev-workspace" "project"; }
-Alt+W { spawn "dev-workspace" "sessions"; }
-Alt+A { focus-workspace-previous; }
-Alt+1 { spawn "dev-workspace" "slot" "dev"; }
-Alt+2 { spawn "dev-workspace" "slot" "term"; }
-Alt+3 { spawn "dev-workspace" "slot" "agent"; }
+Alt+S       { spawn "dev-workspace" "project"; }
+Alt+W       { spawn "dev-workspace" "sessions"; }
+Alt+Shift+W { spawn "dev-workspace" "windows"; }
+Alt+A       { focus-workspace-previous; }
+Alt+1       { spawn "dev-workspace" "slot" "dev"; }
+Alt+2       { spawn "dev-workspace" "slot" "term"; }
+Alt+3       { spawn "dev-workspace" "slot" "agent"; }
+Alt+Shift+1 { spawn "dev-workspace" "new" "dev"; }
+Alt+Shift+2 { spawn "dev-workspace" "new" "term"; }
+Alt+Shift+3 { spawn "dev-workspace" "new" "agent"; }
 ```
 
 ## Available Commands

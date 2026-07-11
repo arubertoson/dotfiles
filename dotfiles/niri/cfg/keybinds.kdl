@@ -13,10 +13,14 @@ binds {
     Mod+CTRL+Return                     hotkey-overlay-title="Open App Launcher: noctalia launcher" { spawn-sh "qs -c noctalia-shell ipc call launcher toggle"; }
     Alt+S                               hotkey-overlay-title="Dev Workspace: project picker" { spawn "dev-workspace" "project"; }
     Alt+W                               hotkey-overlay-title="Dev Workspace: workspace picker" { spawn "dev-workspace" "sessions"; }
+    Alt+Shift+W                         hotkey-overlay-title="Dev Workspace: window picker" { spawn "dev-workspace" "windows"; }
     Alt+A                               hotkey-overlay-title="Dev Workspace: toggle previous workspace" { focus-workspace-previous; }
     Alt+1                               hotkey-overlay-title="Dev Workspace Slot 1: editor" { spawn "dev-workspace" "slot" "dev"; }
     Alt+2                               hotkey-overlay-title="Dev Workspace Slot 2: terminal" { spawn "dev-workspace" "slot" "term"; }
     Alt+3                               hotkey-overlay-title="Dev Workspace Slot 3: agent" { spawn "dev-workspace" "slot" "agent"; }
+    Alt+Shift+1                         hotkey-overlay-title="Dev Workspace New: editor" { spawn "dev-workspace" "new" "dev"; }
+    Alt+Shift+2                         hotkey-overlay-title="Dev Workspace New: terminal" { spawn "dev-workspace" "new" "term"; }
+    Alt+Shift+3                         hotkey-overlay-title="Dev Workspace New: agent" { spawn "dev-workspace" "new" "agent"; }
     Mod+B                               hotkey-overlay-title="Open Browser: firefox" { spawn "firefox"; }
     Mod+ALT+L                           hotkey-overlay-title="Lock Screen: noctalia lock" { spawn-sh "qs -c noctalia-shell ipc call lockScreen lock"; }
     Mod+Shift+Q                        hotkey-overlay-title="Session Menu: noctalia sessionMenu" { spawn-sh "qs -c noctalia-shell ipc call sessionMenu toggle"; }
