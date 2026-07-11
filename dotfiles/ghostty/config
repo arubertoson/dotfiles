@@ -1,0 +1,44 @@
+# Ghostty config
+
+# ─── Visuals ────────────────────────────────────────────────────────────────
+# Match the Noctalia/Ayu-ish dark palette and stay fully opaque.
+theme = Ayu
+background-opacity = 1
+
+# Font: JetBrains Mono Nerd Font gives good coding readability plus icons.
+# Ghostty enables font ligatures through the font's OpenType features.
+font-family = "JetBrainsMono Nerd Font Mono"
+font-size = 12
+font-feature = +calt,+liga
+
+# Padding between terminal text and the window edge.
+window-padding-x = 12
+window-padding-y = 10
+window-padding-balance = true
+window-padding-color = background
+
+# Let niri own window/session UI; Ghostty should feel like a raw terminal surface.
+window-decoration = false
+gtk-titlebar = false
+window-show-tab-bar = never
+resize-overlay = never
+
+# ─── Terminal Feel ──────────────────────────────────────────────────────────
+cursor-style = block
+cursor-style-blink = false
+mouse-hide-while-typing = true
+
+# ─── Protocol / Shell Integration ───────────────────────────────────────────
+shell-integration = detect
+shell-integration-features = cursor,no-sudo,title,path,ssh-env,ssh-terminfo
+term = xterm-ghostty
+
+# ─── Clipboard ──────────────────────────────────────────────────────────────
+clipboard-write = allow
+clipboard-read = allow
+clipboard-paste-protection = true
+copy-on-select = true
+
+# Dev workspaces are managed by niri/dev-workspace; closing a workspace should
+# not block on per-terminal confirmation dialogs.
+confirm-close-surface = false

@@ -1,0 +1,6 @@
+// ────────────── Startup Applications ──────────────
+// https://github.com/YaLTeR/niri/wiki/Configuration:-Miscellaneous#spawn-sh-at-startup
+
+    spawn-sh-at-startup "qs -c noctalia-shell"
+    spawn-sh-at-startup "firefox"
+    spawn-sh-at-startup "niri msg action focus-workspace main; ghostty"

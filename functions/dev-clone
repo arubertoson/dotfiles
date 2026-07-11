@@ -60,7 +60,7 @@ dev-clone() {
   fi
 
   local workspace
-  workspace="$(command -v tmux-workspace 2>/dev/null || command -v tws 2>/dev/null || true)"
+  workspace="$(command -v dev-workspace 2>/dev/null || command -v tmux-workspace 2>/dev/null || command -v tws 2>/dev/null || true)"
 
   if [[ -n "$workspace" ]]; then
     "$workspace" open-path "$dest"

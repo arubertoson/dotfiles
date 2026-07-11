@@ -1,0 +1,583 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DEV_ROOT="${DEV_WORKSPACE_DEV_ROOT:-${XDG_DEV_HOME:-$HOME/dev}}"
+CACHE_DIR="${DEV_WORKSPACE_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/dev-workspace}"
+CACHE_TTL="${DEV_WORKSPACE_CACHE_TTL:-900}"
+PROJECT_MAX_DEPTH="${DEV_WORKSPACE_PROJECT_MAX_DEPTH:-6}"
+FZF_HEIGHT="${DEV_WORKSPACE_FZF_HEIGHT:-100%}"
+FZF_OPTS="${DEV_WORKSPACE_FZF_DEFAULT_OPTS:-${FZF_DEFAULT_OPTS:-}}"
+ROFI_THEME="${DEV_WORKSPACE_ROFI_THEME:-$HOME/.config/rofi/terminal-fzf.rasi}"
+PROJECT_CACHE="$CACHE_DIR/projects.tsv"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/dev-workspace"
+MISE_SHIMS="${MISE_SHIMS:-$HOME/.local/share/mise/shims}"
+
+if [[ -d "$MISE_SHIMS" && ":$PATH:" != *":$MISE_SHIMS:"* ]]; then
+  PATH="$MISE_SHIMS:$PATH"
+  export PATH
+fi
+
+usage() {
+  cat <<'USAGE'
+usage: dev-workspace [project|zoxide|sessions|toggle|slot SLOT|open-path PATH|cleanup]
+
+Environment:
+  DEV_WORKSPACE_BACKEND    niri or tmux; auto-detected by default
+  DEV_WORKSPACE_PICKER     rofi or fzf; backend default by default
+  DEV_WORKSPACE_DEV_ROOT   project root; defaults to $XDG_DEV_HOME or ~/dev
+USAGE
+}
+
+require() {
+  if ! command -v "$1" >/dev/null 2>&1; then
+    notify-send "dev-workspace" "Missing dependency: $1" 2>/dev/null || true
+    echo "dev-workspace: missing dependency: $1" >&2
+    exit 1
+  fi
+}
+
+backend() {
+  if [[ -n "${DEV_WORKSPACE_BACKEND:-}" ]]; then
+    printf '%s\n' "$DEV_WORKSPACE_BACKEND"
+    return
+  fi
+
+  if [[ -n "${NIRI_SOCKET:-}" && -z "${TMUX:-}" ]]; then
+    printf '%s\n' niri
+    return
+  fi
+
+  printf '%s\n' tmux
+}
+
+picker() {
+  if [[ -n "${DEV_WORKSPACE_PICKER:-}" ]]; then
+    printf '%s\n' "$DEV_WORKSPACE_PICKER"
+    return
+  fi
+
+  if [[ "$(backend)" == niri ]]; then
+    printf '%s\n' rofi
+    return
+  fi
+
+  printf '%s\n' fzf
+}
+
+pretty-path() {
+  local dir="$1"
+
+  if [[ "$dir" == "$DEV_ROOT"/* ]]; then
+    printf '~dev/%s\n' "${dir#"$DEV_ROOT"/}"
+    return
+  fi
+
+  if [[ "$dir" == "$HOME"/* ]]; then
+    printf '~/%s\n' "${dir#"$HOME"/}"
+    return
+  fi
+
+  printf '%s\n' "$dir"
+}
+
+abs-path() {
+  local dir="$1"
+  local base="${2:-$DEV_ROOT}"
+
+  case "$dir" in
+    '~dev') printf '%s\n' "$DEV_ROOT" ;;
+    '~dev/'*) printf '%s/%s\n' "$DEV_ROOT" "${dir#\~dev/}" ;;
+    '~') printf '%s\n' "$HOME" ;;
+    '~/'*) printf '%s/%s\n' "$HOME" "${dir#\~/}" ;;
+    /*) printf '%s\n' "$dir" ;;
+    *) printf '%s/%s\n' "$base" "$dir" ;;
+  esac
+}
+
+safe-name() {
+  local name="$1"
+
+  name="${name//./_}"
+  name="${name//:/_}"
+  name="${name// /_}"
+  printf '%s\n' "$name"
+}
+
+session-name() {
+  local dir="$1"
+  local parent
+  local name
+
+  parent="$(basename "$(dirname "$dir")")"
+  name="$(basename "$dir")"
+
+  if [[ "$(dirname "$dir")" == "$DEV_ROOT" ]]; then
+    safe-name "$name"
+    return
+  fi
+
+  safe-name "$parent-$name"
+}
+
+workspace-name() {
+  printf 'dev:%s\n' "$(session-name "$1")"
+}
+
+cache-fresh() {
+  [[ -f "$PROJECT_CACHE" ]] || return 1
+
+  local now
+  local mtime
+
+  now="$(date +%s)"
+  mtime="$(stat -c %Y "$PROJECT_CACHE" 2>/dev/null || true)"
+  [[ -n "$mtime" ]] || return 1
+
+  (( now - mtime < CACHE_TTL ))
+}
+
+write-project-cache() {
+  local tmp
+  local kind
+  local dir
+  local label
+  declare -A seen=()
+
+  mkdir -p "$CACHE_DIR"
+  tmp="$PROJECT_CACHE.$$"
+  : > "$tmp"
+
+  if [[ -d "$DEV_ROOT" ]]; then
+    while IFS=$'\t' read -r kind dir; do
+      [[ -n "${dir:-}" && -d "$dir" ]] || continue
+      [[ -z "${seen[$dir]:-}" ]] || continue
+
+      seen[$dir]=1
+      label="$(pretty-path "$dir")"
+      printf '%s\t%s\t%s\n' "$kind" "$label" "$dir" >> "$tmp"
+    done < <(
+      find "$DEV_ROOT" -mindepth 1 -maxdepth "$PROJECT_MAX_DEPTH" \
+        \( \
+          -type d -name .git -printf 'git\t%h\n' -prune -o \
+          -type f -name .git -printf 'git\t%h\n' -o \
+          -type d -name .jj  -printf 'jj\t%h\n' -prune \
+        \) 2>/dev/null
+    )
+  fi
+
+  sort -u "$tmp" -o "$tmp"
+  mv "$tmp" "$PROJECT_CACHE"
+}
+
+list-projects() {
+  local refresh="${1:-}"
+
+  if [[ "$refresh" == --refresh || ! -f "$PROJECT_CACHE" ]]; then
+    write-project-cache
+    cat "$PROJECT_CACHE"
+    return
+  fi
+
+  cat "$PROJECT_CACHE"
+
+  if ! cache-fresh; then
+    write-project-cache >/dev/null 2>&1 &
+  fi
+}
+
+list-zoxide() {
+  local dir
+  local label
+
+  command -v zoxide >/dev/null 2>&1 || return 0
+
+  zoxide query -l 2>/dev/null | while IFS= read -r dir; do
+    [[ -d "$dir" ]] || continue
+    label="$(pretty-path "$dir")"
+    printf 'zoxide\t%s\t%s\n' "$label" "$dir"
+  done
+}
+
+pick-lines() {
+  local prompt="$1"
+  local mode="${2:-normal}"
+  local choice
+  local code=0
+  local bind=()
+
+  case "$(picker)" in
+    rofi)
+      require rofi
+      if [[ "$mode" == custom-delete ]]; then
+        choice="$(rofi -dmenu -i -matching fuzzy -sort -theme "$ROFI_THEME" \
+          -p "$prompt" -kb-remove-char-forward Delete -kb-custom-1 Control+d)" || code=$?
+        printf '%s\t%s\n' "$code" "$choice"
+        return
+      fi
+
+      if [[ "$mode" == custom-refresh ]]; then
+        choice="$(rofi -dmenu -i -matching fuzzy -sort -theme "$ROFI_THEME" \
+          -p "$prompt" -kb-custom-1 Control+r)" || code=$?
+        printf '%s\t%s\n' "$code" "$choice"
+        return
+      fi
+
+      choice="$(rofi -dmenu -i -matching fuzzy -sort -theme "$ROFI_THEME" -p "$prompt")" || return 1
+      printf '%s\n' "$choice"
+      ;;
+    fzf)
+      require fzf
+      if [[ "$mode" == custom-refresh ]]; then
+        bind=(--bind "ctrl-r:reload(dev-workspace list-projects --refresh | awk -F '\t' '{print \$2 \"\t\" \$3}')+clear-query")
+      fi
+
+      FZF_DEFAULT_OPTS="$FZF_OPTS" \
+        fzf --ansi --no-hscroll --height="$FZF_HEIGHT" --layout=reverse --border \
+          --delimiter=$'\t' --with-nth=1,2 --prompt="$prompt" "${bind[@]}"
+      ;;
+    *)
+      echo "dev-workspace: unknown picker: $(picker)" >&2
+      exit 1
+      ;;
+  esac
+}
+
+selected-path() {
+  local selection="$1"
+  local rest
+
+  rest="${selection#*$'\t'}"
+  printf '%s\n' "${rest#*$'\t'}"
+}
+
+niri-workspace-id() {
+  local ws="$1"
+
+  niri msg -j workspaces |
+    jq -r --arg name "$ws" '.[] | select(.name == $name) | .id' |
+    head -n1
+}
+
+niri-focused-workspace() {
+  niri msg -j workspaces | jq -c '.[] | select(.is_focused)' | head -n1
+}
+
+niri-focus-workspace() {
+  local ws="$1"
+  local focused
+
+  focused="$(niri-focused-workspace | jq -r '.name // empty')"
+  [[ "$ws" == "$focused" ]] && return 0
+
+  niri msg action focus-workspace "$ws"
+}
+
+niri-toggle-workspace() {
+  require niri
+
+  niri msg action focus-workspace-previous
+}
+
+niri-state-file() {
+  local ws="$1"
+  local hash
+
+  hash="$(printf '%s' "$ws" | sha1sum | awk '{print substr($1,1,12)}')"
+  printf '%s/%s.path\n' "$STATE_DIR" "$hash"
+}
+
+niri-record-path() {
+  local ws="$1"
+  local dir="$2"
+  local file
+
+  file="$(niri-state-file "$ws")"
+  mkdir -p "$STATE_DIR"
+  printf '%s\n' "$dir" > "$file"
+}
+
+niri-open-path() {
+  require niri
+  require jq
+  require sha1sum
+
+  local dir="$1"
+  local ws
+  local existing
+
+  [[ -d "$dir" ]] || dir="$(abs-path "$dir")"
+  [[ -d "$dir" ]] || { echo "dev-workspace: not a directory: $dir" >&2; exit 1; }
+
+  ws="$(workspace-name "$dir")"
+  niri-record-path "$ws" "$dir"
+
+  existing="$(niri-workspace-id "$ws")"
+  if [[ -n "$existing" ]]; then
+    niri-focus-workspace "$ws"
+    niri-slot dev
+    return
+  fi
+
+  niri msg action focus-workspace 99 >/dev/null 2>&1 || true
+  niri msg action set-workspace-name "$ws"
+  niri-slot dev
+}
+
+niri-kill-workspace() {
+  require niri
+  require jq
+
+  local ws="$1"
+  local id
+  local win
+
+  case "$ws" in
+    main|browser)
+      notify-send "dev-workspace" "Refusing to remove pinned workspace: $ws" 2>/dev/null || true
+      return 0
+      ;;
+  esac
+
+  id="$(niri-workspace-id "$ws")"
+  [[ -n "$id" ]] || return 0
+
+  niri-focus-workspace main >/dev/null 2>&1 || true
+
+  niri msg -j windows |
+    jq -r --argjson ws "$id" '.[] | select(.workspace_id == $ws) | .id' |
+    while IFS= read -r win; do
+      [[ -n "$win" ]] || continue
+      niri msg action close-window --id "$win" >/dev/null 2>&1 || true
+    done
+
+  niri msg action unset-workspace-name "$ws" >/dev/null 2>&1 || true
+}
+
+niri-clean-orphans() {
+  require niri
+  require jq
+
+  niri msg -j workspaces |
+    jq -r '.[] | select(.name != null and (.name | startswith("dev:")) and .active_window_id == null) | .name' |
+    while IFS= read -r ws; do
+      [[ -n "$ws" ]] || continue
+      niri msg action unset-workspace-name "$ws" >/dev/null 2>&1 || true
+    done
+}
+
+niri-sessions() {
+  require niri
+  require jq
+
+  local result
+  local code
+  local ws
+
+  result="$(
+    niri msg -j workspaces |
+      jq -r '.[] | select(.name != null) | .name' |
+      sort |
+      pick-lines 'workspace >' custom-delete
+  )" || return 0
+
+  code="${result%%$'\t'*}"
+  ws="${result#*$'\t'}"
+  [[ -n "$ws" ]] || return 0
+
+  case "$code" in
+    0) niri-focus-workspace "$ws" ;;
+    10) niri-kill-workspace "$ws" ;;
+  esac
+}
+
+niri-pick-project() {
+  local result
+  local code
+  local selection
+
+  while true; do
+    result="$(list-projects | awk -F '\t' '{print $2 "\t" $3}' | pick-lines 'project >' custom-refresh)" || return 0
+
+    if [[ "$(picker)" != rofi ]]; then
+      selection="$result"
+      break
+    fi
+
+    code="${result%%$'\t'*}"
+    selection="${result#*$'\t'}"
+
+    case "$code" in
+      0) break ;;
+      10) write-project-cache; continue ;;
+      *) return 0 ;;
+    esac
+  done
+
+  [[ -n "$selection" ]] || return 0
+
+  niri-open-path "$(selected-path "$selection")"
+}
+
+niri-pick-zoxide() {
+  local selection
+
+  selection="$(list-zoxide | awk -F '\t' '{print $2 "\t" $3}' | pick-lines 'zoxide >')" || return 0
+  [[ -n "$selection" ]] || return 0
+
+  niri-open-path "$(selected-path "$selection")"
+}
+
+niri-slot() {
+  require niri
+  require jq
+  require ghostty
+  require sha1sum
+
+  local slot_arg="${1:-dev}"
+  local slot
+  local index
+  local focused
+  local ws_id
+  local ws_name
+  local project
+  local file
+  local hash
+  local class
+  local name
+  local existing
+  local win
+  local ghostty_args=(--confirm-close-surface=false)
+
+  case "$slot_arg" in
+    1|dev|code|editor) slot=dev; index=1 ;;
+    2|term|terminal|shell) slot=term; index=2 ;;
+    3|pi|agent) slot=agent; index=3 ;;
+    4|serv|server) slot=serv; index=4 ;;
+    *) echo "dev-workspace: unknown slot: $slot_arg" >&2; exit 2 ;;
+  esac
+
+  focused="$(niri-focused-workspace)"
+  ws_id="$(jq -r '.id' <<<"$focused")"
+  ws_name="$(jq -r '.name // empty' <<<"$focused")"
+
+  if [[ -z "$ws_name" || "$ws_name" != dev:* ]]; then
+    notify-send "dev-workspace" "Focused workspace is not a dev workspace" 2>/dev/null || true
+    exit 1
+  fi
+
+  file="$(niri-state-file "$ws_name")"
+  if [[ ! -f "$file" ]]; then
+    notify-send "dev-workspace" "No project path recorded for $ws_name" 2>/dev/null || true
+    exit 1
+  fi
+
+  project="$(<"$file")"
+  [[ -d "$project" ]] || { echo "dev-workspace: project missing: $project" >&2; exit 1; }
+
+  hash="$(printf '%s' "$ws_name" | sha1sum | awk '{print substr($1,1,12)}')"
+  class="dev.macke.niri.h${hash}.${slot}"
+  name="$(basename "$project")"
+
+  existing="$(
+    niri msg -j windows |
+      jq -r --argjson ws "$ws_id" --arg class "$class" \
+        '.[] | select(.workspace_id == $ws and .app_id == $class) | .id' |
+      head -n1
+  )"
+
+  if [[ -n "$existing" ]]; then
+    niri msg action focus-window --id "$existing"
+    niri msg action move-column-to-index "$index" >/dev/null 2>&1 || true
+    return
+  fi
+
+  case "$slot" in
+    dev)
+      AUTO_TMUX=0 ghostty "${ghostty_args[@]}" --class="$class" --working-directory="$project" \
+        --title="$name:dev" -e env AUTO_TMUX=0 sh -lc '${EDITOR:-nvim} .; exec ${SHELL:-sh}' &
+      ;;
+    term)
+      AUTO_TMUX=0 ghostty "${ghostty_args[@]}" --class="$class" --working-directory="$project" \
+        --title="$name:term" &
+      ;;
+    agent)
+      AUTO_TMUX=0 ghostty "${ghostty_args[@]}" --class="$class" --working-directory="$project" \
+        --title="$name:agent" -e env AUTO_TMUX=0 sh -lc \
+        'if command -v pi >/dev/null 2>&1; then pi; fi; exec ${SHELL:-sh}' &
+      ;;
+    serv)
+      AUTO_TMUX=0 ghostty "${ghostty_args[@]}" --class="$class" --working-directory="$project" \
+        --title="$name:serv" -e env AUTO_TMUX=0 sh -lc \
+        'if command -v just >/dev/null 2>&1; then just; fi; exec ${SHELL:-sh}' &
+      ;;
+  esac
+
+  for _ in $(seq 1 40); do
+    sleep 0.05
+    win="$(
+      niri msg -j windows |
+        jq -r --argjson ws "$ws_id" --arg class "$class" \
+          '.[] | select(.workspace_id == $ws and .app_id == $class) | .id' |
+        head -n1
+    )"
+
+    if [[ -n "$win" ]]; then
+      niri msg action focus-window --id "$win" >/dev/null 2>&1 || true
+      niri msg action move-column-to-index "$index" >/dev/null 2>&1 || true
+      return
+    fi
+  done
+}
+
+tmux-dispatch() {
+  export TMUX_WORKSPACE_FZF_HEIGHT="${TMUX_WORKSPACE_FZF_HEIGHT:-$FZF_HEIGHT}"
+  export TMUX_WORKSPACE_FZF_DEFAULT_OPTS="${TMUX_WORKSPACE_FZF_DEFAULT_OPTS:-$FZF_OPTS}"
+
+  case "${1:-project}" in
+    project|projects|new) exec tmux-workspace project ;;
+    zoxide|z) exec tmux-workspace zoxide ;;
+    sessions|session|active) exec tmux-workspace sessions ;;
+    open-path|restore-path) shift; exec tmux-workspace open-path "$@" ;;
+    toggle|previous|back) require tmux; tmux switch-client -l ;;
+    slot)
+      shift
+      require tmux
+      case "${1:-1}" in
+        1|dev|code|editor) tmux select-window -t 1 ;;
+        2|term|terminal|shell) tmux select-window -t 2 ;;
+        3|pi|agent) tmux select-window -t 3 ;;
+        4|serv|server) tmux select-window -t 4 ;;
+      esac
+      ;;
+    list-projects) shift; list-projects "${1:-}" ;;
+    list-zoxide) list-zoxide ;;
+    --help|-h|help) usage ;;
+    *) usage >&2; exit 1 ;;
+  esac
+}
+
+niri-dispatch() {
+  case "${1:-project}" in
+    project|projects|new) niri-pick-project ;;
+    zoxide|z) niri-pick-zoxide ;;
+    sessions|session|active) niri-sessions ;;
+    toggle|previous|back) niri-toggle-workspace ;;
+    clean|cleanup|orphans) niri-clean-orphans ;;
+    slot) shift; niri-slot "${1:-dev}" ;;
+    open-path|restore-path)
+      shift
+      [[ $# -gt 0 ]] || { usage >&2; exit 1; }
+      niri-open-path "$1"
+      ;;
+    list-projects) shift; list-projects "${1:-}" ;;
+    list-zoxide) list-zoxide ;;
+    --help|-h|help) usage ;;
+    *) usage >&2; exit 1 ;;
+  esac
+}
+
+case "$(backend)" in
+  niri) niri-dispatch "$@" ;;
+  tmux) tmux-dispatch "$@" ;;
+  *) echo "dev-workspace: unknown backend: $(backend)" >&2; exit 1 ;;
+esac

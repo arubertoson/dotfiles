@@ -1,0 +1,84 @@
+/* Minimal terminal/fzf-ish rofi theme */
+* {
+    font: "monospace 12";
+
+    bg:     #0b0f14;
+    bg2:    #111821;
+    fg:     #d6deeb;
+    muted:  #637083;
+    accent: #7aa2f7;
+
+    background-color: transparent;
+    text-color: @fg;
+    margin: 0;
+    padding: 0;
+    spacing: 0;
+}
+
+window {
+    width: 72ch;
+    border: 1px;
+    border-color: @accent;
+    border-radius: 0;
+    background-color: @bg;
+    location: center;
+    anchor: center;
+}
+
+mainbox {
+    background-color: @bg;
+    padding: 0;
+    children: [ inputbar, listview ];
+}
+
+inputbar {
+    background-color: @bg2;
+    padding: 1ch;
+    spacing: 1ch;
+    children: [ prompt, entry ];
+}
+
+prompt {
+    text-color: @accent;
+    padding: 0;
+}
+
+entry {
+    text-color: @fg;
+    cursor: text;
+    placeholder-color: @muted;
+}
+
+listview {
+    background-color: @bg;
+    lines: 12;
+    fixed-height: true;
+    scrollbar: false;
+    cycle: true;
+    padding: 0;
+}
+
+element {
+    background-color: @bg;
+    text-color: @fg;
+    padding: 0.25ch 1ch;
+}
+
+element selected {
+    background-color: @accent;
+    text-color: @bg;
+}
+
+element-text {
+    background-color: inherit;
+    text-color: inherit;
+}
+
+message {
+    background-color: @bg;
+    padding: 1ch;
+}
+
+textbox {
+    text-color: @muted;
+}

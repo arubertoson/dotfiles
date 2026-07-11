@@ -29,11 +29,19 @@
 } "$@"
 
 # After init setup.
-eval "$("$HOME/.local/bin/mise" activate zsh --shims)"
-znap fpath _mise '~/.local/bin/mise completions zsh'
-znap eval zoxide 'zoxide init zsh'
+if command -v mise >/dev/null 2>&1; then
+  eval "$(mise activate zsh --shims)"
+  znap fpath _mise 'mise completions zsh'
+fi
+
+if command -v zoxide >/dev/null 2>&1; then
+  znap eval zoxide 'zoxide init zsh'
+fi
 
 start-tmux() {
+  # Ghostty+niri is now the local workspace layer. Keep tmux available, but
+  # don't hide Ghostty's native protocols unless AUTO_TMUX=1 is explicit.
+  [[ -z "${GHOSTTY_RESOURCES_DIR:-}" || -n "${AUTO_TMUX+x}" ]] || return
   [[ "${AUTO_TMUX:-1}" == 1 ]] || return
   [[ -z "${TMUX:-}" ]] || return
   [[ "${TERM:-}" != dumb ]] || return

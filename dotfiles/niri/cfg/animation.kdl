@@ -1,0 +1,4 @@
+    animations {
+        // Keep workspace/session switching snappy. No compositor transitions.
+        off
+    }
