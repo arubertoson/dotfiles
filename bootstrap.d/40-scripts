@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(dirname ${BASH_SOURCE[0]})"
+ROOT="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 SCRIPT_DIR="$ROOT/../scripts"
 XDG_BIN_HOME="${XDG_BIN_HOME:-$HOME/.local/bin}"
 
@@ -23,7 +23,7 @@ for script in "$SCRIPT_DIR"/*; do
         skipped_count=$((skipped_count + 1))
     else
         log "Linking $script_name"
-	ln -sfn -- "$(realpath $script)" "$target"
+        ln -sfn -- "$(realpath "$script")" "$target"
         linked_count=$((linked_count + 1))
     fi
 done

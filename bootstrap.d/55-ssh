@@ -110,7 +110,7 @@ display_public_key() {
 }
 
 # Parse arguments
-EMAIL="$1"
+EMAIL="${1:-}"
 PROFILE="${2:-}"
 
 generate_github_key "$EMAIL" "$PROFILE"

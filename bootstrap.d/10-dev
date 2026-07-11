@@ -1,22 +1,14 @@
 #!/usr/bin/env bash
-
 set -euo pipefail
 
-export DEBIAN_FRONTEND=noninteractive
+REPO_ROOT="$(dirname "$(dirname "$(realpath "${BASH_SOURCE[0]}")")")"
 
-have() { command -v "$1" >/dev/null 2>&1; }
+# shellcheck disable=SC1091
+source "$REPO_ROOT/lib/detect.sh"
+# shellcheck disable=SC1091
+source "$REPO_ROOT/lib/packages.sh"
 
-sudo apt-get update -y
-
-# Core build toolchain and libs you actually link against
-sudo apt-get install -y \
-  build-essential cmake ninja-build pkg-config \
-  curl git ca-certificates zip unzip tar \
-  libssl-dev zlib1g-dev libasound2-dev \
-  libedit-dev libncurses-dev libpanel-dev \
-  libxml2-dev liblzma-dev doxygen graphviz \
-  libcurl4-openssl-dev \
-  bison rsync aria2
+install-system-packages
+install-aur-packages
 
 echo "[10-dev] OK"
-

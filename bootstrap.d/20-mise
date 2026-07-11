@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+REPO_ROOT="$(dirname "$(dirname "$(realpath "${BASH_SOURCE[0]}")")")"
+
 have() { command -v "$1" >/dev/null 2>&1; }
 
 if ! have mise; then
@@ -8,30 +10,18 @@ if ! have mise; then
   export PATH="$HOME/.local/bin:$PATH"
 fi
 
-# Ensure mise can manage the shell environment for zsh
-RC="${ZDOTDIR:-$HOME}/.zshrc"
-ACT='eval "$(mise activate zsh)"'
-if ! grep -Fq "$ACT" "$RC" 2>/dev/null; then
-    printf '\n%s\n' "$ACT" >> "$RC"
-    echo "[20-mise] Added mise activation to $RC"
-else
-    echo "[20-mise] Mise activation already in $RC"
-fi
-
-REPO_ROOT="$(dirname ${BASH_SOURCE[0]})"
-REPO_MISE_TOML="$REPO_ROOT/dotfiles/mise.toml"
+REPO_MISE_TOML="$REPO_ROOT/dotfiles/mise/config.toml"
 MISE_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/mise"
 MISE_CONFIG_FILE="$MISE_CONFIG_DIR/config.toml"
 
 if [ -f "$REPO_MISE_TOML" ]; then
-    mkdir -p "$MISE_CONFIG_DIR"
-    if [ ! -L "$MISE_CONFIG_FILE" ] || [ "$(readlink "$MISE_CONFIG_FILE")" != "$REPO_MISE_TOML" ]; then
-        ln -sfn -- "$REPO_MISE_TOML" "$MISE_CONFIG_FILE"
-        echo "[20-mise] Linked mise config"
-    else
-        echo "[20-mise] Mise config already linked"
-    fi
+  mkdir -p "$MISE_CONFIG_DIR"
+  if [ ! -L "$MISE_CONFIG_FILE" ] || [ "$(readlink "$MISE_CONFIG_FILE")" != "$REPO_MISE_TOML" ]; then
+    ln -sfn -- "$REPO_MISE_TOML" "$MISE_CONFIG_FILE"
+    echo "[20-mise] Linked mise config"
+  else
+    echo "[20-mise] Mise config already linked"
+  fi
 fi
 
 echo "[20-mise] OK (mise installed + config linked; no tools installed here)"
-

@@ -19,6 +19,7 @@ HOME_LOCAL="${HOME}/.local"
 export XDG_CONFIG_HOME="${HOME}/.config"
 export XDG_CACHE_HOME="${HOME}/.cache"
 export XDG_DATA_HOME="${HOME_LOCAL}/share"
+export XDG_STATE_HOME="${HOME_LOCAL}/state"
 
 # Extended XDG with some custom locations
 export XDG_BIN_HOME="${HOME_LOCAL}/bin"
@@ -35,6 +36,7 @@ directories=(
     "$XDG_CONFIG_HOME"
     "$XDG_CACHE_HOME"
     "$XDG_DATA_HOME"
+    "$XDG_STATE_HOME"
     "$XDG_BIN_HOME"
     "$XDG_APP_HOME"
     "$XDG_DEV_HOME"

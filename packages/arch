@@ -1,0 +1,25 @@
+# Base tools for Arch-based systems.
+base-devel
+bison
+ca-certificates
+cmake
+curl
+doxygen
+git
+github-cli
+graphviz
+jq
+libedit
+libxml2
+luajit
+ncurses
+ninja
+openssl
+pkgconf
+rsync
+tar
+tmux
+unzip
+wget
+zsh
+zip
