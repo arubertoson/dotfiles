@@ -79,25 +79,17 @@
         "widgets": {
             "center": [
                 {
-                    "characterCount": 2,
                     "colorizeIcons": false,
-                    "emptyColor": "secondary",
-                    "enableScrollWheel": true,
-                    "focusedColor": "primary",
-                    "followFocusedScreen": false,
-                    "fontWeight": "bold",
-                    "groupedBorderOpacity": 1,
-                    "hideUnoccupied": false,
-                    "iconScale": 0.8,
-                    "id": "Workspace",
-                    "labelMode": "index",
-                    "occupiedColor": "secondary",
-                    "pillSize": 0.6,
-                    "showApplications": true,
-                    "showApplicationsHover": true,
-                    "showBadge": true,
-                    "showLabelsOnlyWhenOccupied": true,
-                    "unfocusedIconsOpacity": 1
+                    "hideMode": "hidden",
+                    "iconScale": 0.75,
+                    "id": "Taskbar",
+                    "maxTaskbarWidth": 55,
+                    "onlyActiveWorkspaces": true,
+                    "onlySameOutput": true,
+                    "showPinnedApps": false,
+                    "showTitle": true,
+                    "smartWidth": true,
+                    "titleWidth": 120
                 }
             ],
             "left": [
@@ -141,17 +133,6 @@
                     "textColor": "none",
                     "useMonospaceFont": true,
                     "usePadding": false
-                },
-                {
-                    "colorizeIcons": false,
-                    "hideMode": "hidden",
-                    "id": "ActiveWindow",
-                    "maxWidth": 145,
-                    "scrollingMode": "hover",
-                    "showIcon": true,
-                    "showText": true,
-                    "textColor": "none",
-                    "useFixedWidth": false
                 },
                 {
                     "compactMode": false,
