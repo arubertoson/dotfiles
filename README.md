@@ -68,9 +68,12 @@ config, run:
 
 ```sh
 DOTFILES_REPLACE_DIRS=1 ./bootstrap
+# or, after bootstrap is already installed:
+just adopt-dotfiles
 ```
 
-Existing directories are moved to `*.backup.<timestamp>` before linking.
+Existing directories are moved to `*.backup.<timestamp>` before linking. Use
+`just status` to verify managed config paths are symlinks.
 
 ## Dev Workspaces
 
@@ -109,6 +112,7 @@ uses `just` for task automation:
 *   `just packages`: Installs system packages for the detected profile.
 *   `just mise`: Installs/links mise and installs mise-managed tools.
 *   `just dotfiles`: Links profile-appropriate dotfiles.
+*   `just adopt-dotfiles`: Backs up existing config directories and replaces them with repo symlinks.
 *   `just scripts`: Links scripts to `~/.local/bin`.
 *   `just bootstrap-config`: Links dotfiles/scripts without installing packages or mise tools.
 *   `just update [component]`: Updates specific components.
@@ -117,5 +121,5 @@ uses `just` for task automation:
 *   `just ssh [email] [profile]`: Sets up SSH keys and configuration.
     *   `email`: Optional email for the SSH key.
     *   `profile`: Optional profile (e.g., `work`).
-*   `just status`: Displays the current status of the Zsh configuration, including Zsh and Mise versions, and linked scripts.
+*   `just status`: Displays the current status of the Zsh configuration, including Zsh/Mise versions, linked scripts, and managed config symlinks.
 *   `just test-env`: Sets up an isolated test environment in `/tmp` for development and testing purposes.

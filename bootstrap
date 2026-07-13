@@ -71,11 +71,24 @@ mark_stage_completed() {
 log "Detected profile"
 _dot_detect_log | sed 's/^/[BOOT]   /'
 
+should_run_completed_stage() {
+  local stage=$1
+
+  case "$stage" in
+    35-dotfiles)
+      [ "${DOTFILES_REPLACE_DIRS:-0}" = 1 ]
+      return
+      ;;
+  esac
+
+  return 1
+}
+
 for stage in "$STAGES_DIR"/[0-9][0-9]-*; do
   [ -x "$stage" ] || continue
   stage_name=$(basename "$stage")
 
-  if stage_completed "$stage_name"; then
+  if stage_completed "$stage_name" && ! should_run_completed_stage "$stage_name"; then
     log "Stage $stage_name already completed for $DOT_PROFILE, skipping"
     continue
   fi

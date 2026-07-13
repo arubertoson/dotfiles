@@ -24,6 +24,9 @@ mise:
 dotfiles:
     @./bootstrap.d/35-dotfiles
 
+adopt-dotfiles:
+    @DOTFILES_REPLACE_DIRS=1 ./bootstrap.d/35-dotfiles
+
 scripts:
     @./bootstrap.d/40-scripts
 
@@ -60,6 +63,8 @@ status:
     @echo "Mise: $(mise --version 2>/dev/null || echo 'NOT FOUND')"
     @echo "Scripts dir: ${XDG_BIN_HOME:-$HOME/.local/bin}"
     @ls -la ${XDG_BIN_HOME:-$HOME/.local/bin}/ | grep -E '\->' | head -5 || echo "No scripts linked"
+    @echo "=== Managed config links ==="
+    @bash -lc 'shopt -s dotglob nullglob; for source in dotfiles/*; do name="$(basename "$source")"; target="${XDG_CONFIG_HOME:-$HOME/.config}/$name"; if [ "$name" = ".tmux.conf" ]; then target="$HOME/$name"; fi; if [ -L "$target" ]; then printf "%-14s -> %s\n" "$name" "$(readlink "$target")"; continue; fi; if [ -e "$target" ]; then printf "%-14s NOT LINKED (%s)\n" "$name" "$(stat -c %F "$target")"; continue; fi; printf "%-14s missing\n" "$name"; done'
     @echo "=== Bootstrap stages ==="
     @ls -la bootstrap.d/ | grep -E '^[d-].*[0-9][0-9]-' | awk '{print $9}'
 
