@@ -21,7 +21,7 @@ binds {
     Alt+Shift+1                         hotkey-overlay-title="Dev Workspace New: editor" { spawn "dev-workspace" "new" "dev"; }
     Alt+Shift+2                         hotkey-overlay-title="Dev Workspace New: terminal" { spawn "dev-workspace" "new" "term"; }
     Alt+Shift+3                         hotkey-overlay-title="Dev Workspace New: agent" { spawn "dev-workspace" "new" "agent"; }
-    Mod+B                               hotkey-overlay-title="Open Browser: firefox" { spawn "firefox"; }
+    Mod+B                               hotkey-overlay-title="Open Browser: firefox" { spawn-sh "niri msg action focus-workspace browser; exec firefox"; }
     Mod+ALT+L                           hotkey-overlay-title="Lock Screen: noctalia lock" { spawn-sh "qs -c noctalia-shell ipc call lockScreen lock"; }
     Mod+Shift+Q                        hotkey-overlay-title="Session Menu: noctalia sessionMenu" { spawn-sh "qs -c noctalia-shell ipc call sessionMenu toggle"; }
 
