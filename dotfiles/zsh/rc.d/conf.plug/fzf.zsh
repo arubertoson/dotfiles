@@ -36,9 +36,8 @@ fzf-history() {
   zle reset-prompt
 }
 
-fzf-tmux-workspace-bin() {
-  command -v tmux-workspace 2>/dev/null || command -v tws 2>/dev/null || \
-    print -r -- "$HOME/.local/bin/tmux-workspace"
+fzf-dev-workspace-bin() {
+  command -v dev-workspace 2>/dev/null || print -r -- "$HOME/.local/bin/dev-workspace"
 }
 
 fzf-pick-workspace-line() {
@@ -64,12 +63,12 @@ fzf-workspace-path() {
 }
 
 fzf-change-to-dev-project() {
-  local picker selection kind dir command reload
+  local picker selection dir command reload
 
   zle vi-insert
 
-  picker="$(fzf-tmux-workspace-bin)"
-  [[ -x "$picker" || -n "$(command -v tmux-workspace 2>/dev/null)" ]] || {
+  picker="$(fzf-dev-workspace-bin)"
+  [[ -x "$picker" ]] || {
     zle reset-prompt
     return 0
   }
@@ -83,10 +82,9 @@ fzf-change-to-dev-project() {
     return 0
   fi
 
-  kind="${selection%%$'\t'*}"
   dir="$(fzf-workspace-path "$selection")"
 
-  if [[ -z "${TMUX:-}" && "$kind" == git ]]; then
+  if [[ -z "${TMUX:-}" ]]; then
     BUFFER="builtin cd -- ${(q)dir}"
     zle silent-accept-line
     printf '\r\033[38;5;12m%s\033[0m' "$dir"
@@ -103,8 +101,8 @@ fzf-change-to-zoxide-directory() {
 
   zle vi-insert
 
-  picker="$(fzf-tmux-workspace-bin)"
-  [[ -x "$picker" || -n "$(command -v tmux-workspace 2>/dev/null)" ]] || {
+  picker="$(fzf-dev-workspace-bin)"
+  [[ -x "$picker" ]] || {
     zle reset-prompt
     return 0
   }

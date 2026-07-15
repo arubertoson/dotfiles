@@ -4,30 +4,31 @@ dev-scratch() {
   emulate -L zsh
 
   local git="0"
+  local -a args=()
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --git)
-        git="1"
-        shift
-        ;;
-      --no-git)
-        git="0"
-        shift
-        ;;
+      --git) git="1" ;;
+      --no-git) git="0" ;;
       -h|--help)
         echo "usage: dev-scratch <name> [--git|--no-git]" >&2
         return 0
+        ;;
+      --)
+        shift
+        args+=("$@")
+        break
         ;;
       --*)
         echo "unknown option: $1" >&2
         return 1
         ;;
-      *)
-        break
-        ;;
+      *) args+=("$1") ;;
     esac
+    shift
   done
+
+  set -- "${args[@]}"
 
   if [[ $# -ne 1 ]]; then
     echo "usage: dev-scratch <name> [--git|--no-git]" >&2

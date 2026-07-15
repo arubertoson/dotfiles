@@ -1,0 +1,45 @@
+#compdef dev-workspace
+
+local context state state_descr line
+local -a commands slots
+
+typeset -A opt_args
+
+commands=(
+  'project:pick and open a development project'
+  'zoxide:pick and open a directory from zoxide'
+  'sessions:pick an active workspace or tmux session'
+  'windows:pick a window in the current workspace or session'
+  'toggle:switch to the previous workspace or tmux session'
+  'cleanup:remove empty niri development workspaces'
+  'slot:focus or create a canonical workspace slot'
+  'new:create another window for a canonical slot'
+  'open-path:open a directory as a development workspace'
+)
+
+slots=(
+  'dev:editor'
+  'term:terminal'
+  'agent:coding agent'
+  'serv:project service command'
+)
+
+_arguments -C \
+  '1:command:->command' \
+  '*::argument:->argument'
+
+case "$state" in
+  command)
+    _describe -t commands command commands
+    ;;
+  argument)
+    case "${line[1]}" in
+      slot|new)
+        _describe -t slots slot slots
+        ;;
+      open-path)
+        _directories
+        ;;
+    esac
+    ;;
+esac
