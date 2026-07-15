@@ -7,13 +7,6 @@ DEV_DIR="${DOTFILES_REPO_DIR:-${XDG_DEV_HOME:-$HOME/dev}/home/github.com/arubert
 log() { printf "\033[1;36m[BOOT]\033[0m %s\n" "$*"; }
 error() { printf "\033[1;31m[ERROR]\033[0m %s\n" "$*"; }
 
-if [ -f "$HOME/.env" ]; then
-  set -a
-  # shellcheck disable=SC1090
-  source "$HOME/.env"
-  set +a
-fi
-
 adopt-repo-location() {
   local root_real
   local dev_real
@@ -52,56 +45,43 @@ STAGES_DIR="$ROOT/bootstrap.d"
 # shellcheck disable=SC1091
 source "$ROOT/lib/detect.sh"
 
-BOOTSTRAP_STATE="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/bootstrap/$DOT_PROFILE"
-mkdir -p "$(dirname "$BOOTSTRAP_STATE")"
-touch "$BOOTSTRAP_STATE"
-
-stage_completed() {
-  local stage=$1
-  grep -q "^${stage}$" "$BOOTSTRAP_STATE"
-}
-
-mark_stage_completed() {
-  local stage=$1
-  if ! stage_completed "$stage"; then
-    echo "$stage" >> "$BOOTSTRAP_STATE"
-  fi
-}
-
 log "Detected profile"
 _dot_detect_log | sed 's/^/[BOOT]   /'
 
-should_run_completed_stage() {
-  local stage=$1
+case "$DOT_PROFILE" in
+  arch|arch-desktop|wsl-ubuntu) ;;
+  *)
+    error "Unsupported profile: $DOT_PROFILE"
+    error "Set DOT_PROFILE to arch, arch-desktop, or wsl-ubuntu."
+    exit 1
+    ;;
+esac
 
-  case "$stage" in
-    35-dotfiles)
-      [ "${DOTFILES_REPLACE_DIRS:-0}" = 1 ]
-      return
-      ;;
-  esac
+run-stage() {
+  local name="$1"
+  shift
 
-  return 1
+  log "Running $name"
+  if "$STAGES_DIR/$name" "$@"; then
+    log "Stage $name completed successfully"
+    return
+  fi
+
+  error "Stage $name failed"
+  exit 1
 }
 
-for stage in "$STAGES_DIR"/[0-9][0-9]-*; do
-  [ -x "$stage" ] || continue
-  stage_name=$(basename "$stage")
-
-  if stage_completed "$stage_name" && ! should_run_completed_stage "$stage_name"; then
-    log "Stage $stage_name already completed for $DOT_PROFILE, skipping"
-    continue
-  fi
-
-  log "Running $stage_name"
-  if "$stage"; then
-    mark_stage_completed "$stage_name"
-    log "Stage $stage_name completed successfully"
-  else
-    error "Stage $stage_name failed"
-    exit 1
-  fi
-done
+# Bootstrap composes required setup explicitly. Optional components such as SSH
+# and Neovim have dedicated commands and do not run merely because a stage exists.
+run-stage 10-dev
+run-stage 20-mise
+run-stage 35-dotfiles mise
+run-stage 25-github-auth
+run-stage 30-cli
+run-stage 32-completions
+run-stage 35-dotfiles
+run-stage 40-scripts
+run-stage 00-zsh
 
 log "Repo location: $ROOT"
 

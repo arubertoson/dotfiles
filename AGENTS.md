@@ -1,4 +1,4 @@
-# Agent Guidelines for Zsh Configuration
+# Agent Guidelines for Dotfiles
 
 ## Code Style Guidelines
 

@@ -1,118 +1,42 @@
 #!/usr/bin/env bash
-# bootstrap.d/30-cli
-
 set -euo pipefail
 
-have() { command -v "$1" >/dev/null 2>&1; }
+REPO_ROOT="$(dirname "$(dirname "$(realpath "${BASH_SOURCE[0]}")")")"
+UPGRADE=0
 
-if [ -f "$HOME/.env" ]; then
-  set -a
-  # shellcheck disable=SC1090
-  source "$HOME/.env"
-  set +a
+if [ "${1:-}" = --upgrade ]; then
+  UPGRADE=1
+elif [ $# -gt 0 ]; then
+  echo "usage: $0 [--upgrade]" >&2
+  exit 2
 fi
 
-if ! have mise; then
+if ! command -v mise >/dev/null 2>&1; then
   echo "[30-cli] mise not found. Did 20-mise run?" >&2
   exit 1
 fi
 
-eval "$(mise activate bash)"
+# shellcheck disable=SC1091
+source "$REPO_ROOT/lib/github.sh"
+github-auth-required
+
+MISE_CONFIG_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/mise/config.toml"
+[ -f "$MISE_CONFIG_FILE" ] || {
+  echo "[30-cli] mise config not found: $MISE_CONFIG_FILE" >&2
+  exit 1
+}
+
 export MISE_JOBS="${MISE_JOBS:-4}"
+mise trust "$MISE_CONFIG_FILE" >/dev/null
 
-shell-quote() {
-  local value="$1"
-
-  printf "'%s'" "${value//\'/\'\\\'\'}"
-}
-
-write-env-var() {
-  local key="$1"
-  local value="$2"
-  local env="$HOME/.env"
-  local tmp
-
-  touch "$env"
-  chmod 600 "$env" 2>/dev/null || true
-  tmp="${env}.$$"
-
-  grep -v -E "^${key}=" "$env" > "$tmp" || true
-  printf '%s=%s\n' "$key" "$(shell-quote "$value")" >> "$tmp"
-  mv "$tmp" "$env"
-  chmod 600 "$env" 2>/dev/null || true
-}
-
-setup-github-token-with-gh() {
-  local token
-
-  have gh || return 1
-
-  if ! gh auth status --hostname github.com >/dev/null 2>&1; then
-    if [ "${DOT_GITHUB_AUTH_INTERACTIVE:-1}" != 1 ]; then
-      return 1
-    fi
-
-    echo "[30-cli] Starting GitHub CLI authentication for github.com"
-    gh auth login --hostname github.com --git-protocol ssh --web
-  fi
-
-  gh auth setup-git --hostname github.com >/dev/null 2>&1 || true
-  token="$(gh auth token 2>/dev/null || true)"
-  [ -n "$token" ] || return 1
-
-  export GITHUB_TOKEN="$token"
-
-  if [ "${DOT_GITHUB_TOKEN_PERSIST:-1}" = 1 ]; then
-    write-env-var GITHUB_TOKEN "$token"
-    echo "[30-cli] Stored GitHub token in ~/.env for mise GitHub downloads"
-  else
-    echo "[30-cli] Exported GitHub token for this bootstrap run only"
-  fi
-}
-
-ensure-github-token() {
-  local token
-
-  token="$(mise token github --raw 2>/dev/null || true)"
-  [ -n "$token" ] && return 0
-
-  if setup-github-token-with-gh; then
-    token="$(mise token github --raw 2>/dev/null || true)"
-    [ -n "$token" ] && return 0
-  fi
-
-  cat >&2 <<'EOF'
-[30-cli] No GitHub token available to mise.
-[30-cli]
-[30-cli] This config installs many tools from GitHub releases. Anonymous GitHub
-[30-cli] API calls are heavily rate-limited and will often fail during bootstrap.
-[30-cli]
-[30-cli] Bootstrap can set this up automatically if GitHub CLI is installed:
-[30-cli]
-[30-cli]   gh auth login --hostname github.com --git-protocol ssh --web
-[30-cli]
-[30-cli] Or create a token and put it in ~/.env, then rerun ./bootstrap:
-[30-cli]
-[30-cli]   GITHUB_TOKEN="github_pat_or_ghp_token_here"
-[30-cli]
-[30-cli] A classic token with no special scopes is usually enough for public
-[30-cli] releases. Fine-grained PATs also work if they can read public metadata.
-[30-cli]
-EOF
-
-  if [ "${DOT_GITHUB_AUTH_REQUIRED:-1}" = 1 ]; then
-    exit 1
-  fi
-}
-
-if [ -f "$HOME/.config/mise/config.toml" ]; then
-  mise trust "$HOME/.config/mise/config.toml" || true
-  ensure-github-token
-  mise install -y
+if [ "$UPGRADE" = 1 ]; then
+  mise upgrade -C "$HOME" -y
 fi
 
-if command -v node >/dev/null 2>&1; then
-  corepack enable || true
+mise install -C "$HOME" -y
+
+if mise which -C "$HOME" corepack >/dev/null 2>&1; then
+  mise exec -C "$HOME" -- corepack disable
 fi
 
-echo "[30-cli] OK (tools installed via mise)"
+echo "[30-cli] OK (mise tools reconciled)"

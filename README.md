@@ -1,38 +1,65 @@
-# Dotfiles / Zsh Configuration
+# Dotfiles
 
-To set up this environment:
+Profile-aware setup for a Zsh development environment, terminal workflows, and
+an optional niri desktop.
 
-1. Clone this repository anywhere temporary is fine
-2. Run `./bootstrap` to set up the environment
-3. Optionally copy `.env.example` to `~/.env` after `gh auth login` and fill in local values
+## First setup
 
-`./bootstrap` is the zero-dependency entrypoint. On first run, it moves this
-checkout into the canonical dev location:
+```sh
+git clone https://github.com/arubertoson/zsh.git
+cd zsh
+./bootstrap
+```
+
+Bootstrap is the zero-dependency entrypoint. On its first run it moves the
+checkout to the canonical development path:
 
 ```text
 ~/dev/home/github.com/arubertoson/zsh
 ```
 
-Override the location with `DOTFILES_REPO_DIR`, or disable the move with
-`DOTFILES_ADOPT_REPO=0`.
+Set `DOTFILES_REPO_DIR` to choose another path, or set
+`DOTFILES_ADOPT_REPO=0` to keep the checkout where it is.
 
-`just` is installed/managed by mise during bootstrap and is only expected to be
-available after the first run.
+Bootstrap:
 
-## Project Architecture
+1. Installs missing packages without performing a full system update.
+2. Installs mise and links its configuration.
+3. Authenticates GitHub interactively when required.
+4. Installs mise-managed tools.
+5. Applies managed dotfiles and scripts.
+6. Sets Zsh as the login shell.
 
-This project is structured to manage a shell/dev/desktop environment in a modular and organized way.
+It can be run repeatedly. SSH keys and the separate Neovim configuration are
+explicit setup operations and do not run during bootstrap.
 
-*   **`bootstrap.d/`**: Contains scripts for the initial setup and bootstrapping of the environment. Files are executed in numerical order (e.g., `00-zsh`, `10-dev`), ensuring dependencies are met.
-*   **`rc.d/`**: Holds the core Zsh configuration files that are loaded when the shell starts. Similar to `bootstrap.d/`, files are sourced in numerical order (e.g., `01-hist.zsh`, `02-dirs.zsh`).
-*   **`functions/`**: This directory is for custom, reusable Zsh functions that can be autoloaded by the shell.
-*   **`scripts/`**: Contains standalone, executable shell scripts that provide utility functions or automate tasks.
-*   **`lib/`**: Shared bootstrap helpers, including platform/profile detection.
-*   **`packages/`**: Extensionless package manifests for supported platforms.
+Copy `.env.example` to `~/.env` only when machine-local values are needed,
+then run `chmod 600 ~/.env`. Interactive Zsh shells export these values to the
+commands they launch. GitHub credentials remain in the GitHub CLI credential
+store, not this file.
+
+## Architecture
+
+- **`dotfiles/`** contains application configuration linked into `~/.config`
+  and other documented targets.
+- **`dotfiles/zsh/`** contains `.zshenv`, `.zshrc`, ordered `rc.d/` modules, and
+  autoloadable functions.
+- **`bootstrap.d/`** contains setup operations explicitly composed by
+  `bootstrap` and `just`; executable files are not automatically run.
+- **`scripts/`** contains standalone commands linked into `~/.local/bin`.
+- **`lib/`** contains shared profile, package, GitHub, and SSH helpers.
+- **`packages/`** contains profile-specific system package manifests.
+
+Zsh is managed as:
+
+```text
+~/.zshenv     -> <repo>/dotfiles/zsh/.zshenv
+~/.config/zsh -> <repo>/dotfiles/zsh
+```
 
 ## Profiles
 
-Bootstrap detects the current profile automatically and can be overridden:
+Bootstrap detects its profile automatically. Override it when necessary:
 
 ```sh
 DOT_PROFILE=arch-desktop ./bootstrap
@@ -41,85 +68,167 @@ DOT_PROFILE=wsl-ubuntu ./bootstrap
 
 Supported profiles:
 
-* `arch-desktop` - Arch-based native desktop with niri/Ghostty/Noctalia/rofi.
-* `arch` - Arch-based terminal/base setup without desktop dotfiles.
-* `wsl-ubuntu` - Ubuntu under WSL2, tmux-first workflow.
+- `arch-desktop`: Arch-based niri desktop with Ghostty, Noctalia, and rofi.
+- `arch`: Arch-based terminal setup without desktop dotfiles.
+- `wsl-ubuntu`: Ubuntu under WSL2 with a tmux-first workflow.
 
-Inspect detection with:
+Full provisioning fails on unknown profiles. Profile-neutral dotfiles can still
+be applied directly. Inspect detection with:
 
 ```sh
-bash -lc 'source ./lib/detect.sh; _dot_detect_log'
-# after bootstrap: just detect
+just detect
 ```
 
-## Managed Desktop Dotfiles
+## Lifecycle commands
 
-The repo also carries the local desktop/session pieces used by the workspace flow:
-
-* `dotfiles/niri/` - niri config and `Alt+S`/`Alt+W`/`Alt+A`/`Alt+1..3` bindings.
-* `dotfiles/ghostty/` - Ghostty terminal config.
-* `dotfiles/rofi/` - terminal-like rofi theme for pickers.
-* `dotfiles/noctalia/` - Noctalia settings/colors/plugins.
-* `dotfiles/environment.d/` - user session PATH, including `~/.local/bin`.
-
-`./bootstrap` links these into `~/.config`. If an existing config directory is
-already present, it is skipped by default. To adopt a machine into the repo-managed
-config, run:
+### Apply configuration
 
 ```sh
-DOTFILES_REPLACE_DIRS=1 ./bootstrap
-# or, after bootstrap is already installed:
+just apply
+```
+
+This is the fast, noninteractive reconciliation command. It links dotfiles and
+scripts without packages, authentication, `sudo`, Git operations, or network
+access. Missing managed links are restored. Existing unmanaged files and
+directories are left untouched.
+
+To back up existing paths and replace them with managed links:
+
+```sh
 just adopt-dotfiles
 ```
 
-Existing directories are moved to `*.backup.<timestamp>` before linking. Use
-`just status` to verify managed config paths are symlinks.
+Backups use the suffix `.backup.<timestamp>`.
 
-## Dev Workspaces
+A single dotfile component can be applied with, for example:
 
-`dev-workspace` is the backend-neutral project/session launcher.
-
-* Local niri/Ghostty flow: `dev-workspace project`, `dev-workspace sessions`,
-  `dev-workspace windows`, `dev-workspace slot dev|term|agent`,
-  `dev-workspace new dev|term|agent`.
-* tmux flow: set `DEV_WORKSPACE_BACKEND=tmux` or run inside tmux; the command delegates to `tmux-workspace`.
-* Projects are discovered under `$XDG_DEV_HOME`/`~/dev` by looking for Git (`.git`) and Jujutsu (`.jj`) repositories.
-* In Ghostty, auto-tmux is skipped unless `AUTO_TMUX=1` is explicitly set, preserving direct terminal protocols for local workspaces.
-
-Recommended niri bindings:
-
-```kdl
-Alt+S       { spawn "dev-workspace" "project"; }
-Alt+W       { spawn "dev-workspace" "sessions"; }
-Alt+Shift+W { spawn "dev-workspace" "windows"; }
-Alt+A       { focus-workspace-previous; }
-Alt+1       { spawn "dev-workspace" "slot" "dev"; }
-Alt+2       { spawn "dev-workspace" "slot" "term"; }
-Alt+3       { spawn "dev-workspace" "slot" "agent"; }
-Alt+Shift+1 { spawn "dev-workspace" "new" "dev"; }
-Alt+Shift+2 { spawn "dev-workspace" "new" "term"; }
-Alt+Shift+3 { spawn "dev-workspace" "new" "agent"; }
+```sh
+just dotfiles zsh
+just dotfiles mise
 ```
 
-## Available Commands
+Verify reconciliation against an isolated temporary home with:
 
-`./bootstrap` is the canonical first-run command. After bootstrap, this project
-uses `just` for task automation:
+```sh
+just smoke
+```
 
-*   `just default`: Lists all available `just` commands.
-*   `just bootstrap`: Re-runs the main bootstrapping script (`./bootstrap`).
-*   `just detect`: Shows detected platform/profile values.
-*   `just packages`: Installs system packages for the detected profile.
-*   `just mise`: Installs/links mise and installs mise-managed tools.
-*   `just dotfiles`: Links profile-appropriate dotfiles.
-*   `just adopt-dotfiles`: Backs up existing config directories and replaces them with repo symlinks.
-*   `just scripts`: Links scripts to `~/.local/bin`.
-*   `just bootstrap-config`: Links dotfiles/scripts without installing packages or mise tools.
-*   `just update [component]`: Updates specific components.
-    *   `component` can be `packages`, `scripts`, `dotfiles`, `mise`, `ssh`, or `ssh-work`.
-    *   If no component is specified, it runs the main update script (`./update.sh`).
-*   `just ssh [email] [profile]`: Sets up SSH keys and configuration.
-    *   `email`: Optional email for the SSH key.
-    *   `profile`: Optional profile (e.g., `work`).
-*   `just status`: Displays the current status of the Zsh configuration, including Zsh/Mise versions, linked scripts, and managed config symlinks.
-*   `just test-env`: Sets up an isolated test environment in `/tmp` for development and testing purposes.
+The smoke test checks repeatability, drift repair, unmanaged-path preservation,
+scoped stale-link cleanup, and the absence of privileged or network commands.
+
+### Install declared packages
+
+```sh
+just packages
+```
+
+This installs missing packages from the detected profile manifests. It does not
+remove undeclared packages or intentionally perform a full system update.
+
+### Reconcile mise tools
+
+```sh
+just mise
+```
+
+This installs mise, applies its global configuration, requires existing GitHub
+credentials, runs `mise install`, and refreshes generated Zsh completions. If
+credentials are missing, run:
+
+```sh
+just github-auth
+```
+
+Generated completions for available supported commands can also be refreshed
+without installing or updating anything:
+
+```sh
+just completions
+```
+
+### Update the machine
+
+```sh
+just update
+```
+
+A full update requires a clean repository, pulls with rebase, updates system
+packages, reconciles package manifests, upgrades floating mise declarations,
+installs missing pinned tools, and applies dotfiles and scripts.
+
+Component updates remain available:
+
+```sh
+just update packages
+just update mise
+just update dotfiles
+just update scripts
+```
+
+### Configure GitHub SSH
+
+```sh
+just ssh [email] [home|work]
+```
+
+This creates an Ed25519 key with an empty passphrase, configures its GitHub host,
+registers the public key through the authenticated GitHub CLI account, and
+verifies SSH access. It backs up an existing changed SSH config before replacing
+the selected GitHub host block.
+
+### Configure Neovim
+
+```sh
+just nvim
+```
+
+This ensures personal GitHub SSH access, clones
+`git@github.com:arubertoson/nvim.git` into the canonical development tree when
+absent, and links `~/.config/nvim`. An existing checkout is never pulled, reset,
+or otherwise modified.
+
+## Managed desktop configuration
+
+The `arch-desktop` profile applies:
+
+- `dotfiles/niri/`
+- `dotfiles/ghostty/`
+- `dotfiles/rofi/`
+- `dotfiles/noctalia/`
+- `dotfiles/environment.d/`
+
+Other shared configuration, including Git, mise, tmux, and Zsh, applies to all
+supported profiles.
+
+## Development workspaces
+
+`dev-workspace` is the backend-neutral project and session launcher.
+
+- On niri it manages named project workspaces and Ghostty window slots.
+- In tmux, or with `DEV_WORKSPACE_BACKEND=tmux`, it manages tmux sessions and
+  canonical `dev`, `term`, `agent`, and `serv` windows directly.
+- Projects are discovered below `$XDG_DEV_HOME`/`~/dev` from Git and Jujutsu
+  repositories.
+- Ghostty skips automatic tmux unless `AUTO_TMUX=1` is explicitly set.
+
+Common commands:
+
+```sh
+dev-workspace project
+dev-workspace sessions
+dev-workspace windows
+dev-workspace slot dev
+dev-workspace slot term
+dev-workspace slot agent
+```
+
+Interactive Zsh also provides focused project setup helpers:
+
+```sh
+dev-clone [location] <remote>
+dev-new [location] <name> [--git|--no-git]
+dev-scratch <name> [--git|--no-git]
+```
+
+Run `just status` to inspect profile detection, tool availability, and managed
+configuration links.
