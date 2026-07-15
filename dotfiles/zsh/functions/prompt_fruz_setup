@@ -23,20 +23,9 @@ prompt_fruz_update_prompt() {
   esac
 }
 
-zle-keymap-select() {
-  prompt_fruz_update_prompt
-  zle .reset-prompt
-}
-
-zle-line-init() {
-  prompt_fruz_update_prompt
-  zle .reset-prompt
-}
-
+# Keymap widgets are registered after plugins in 08-keys.zsh so prompt and
+# cursor updates have one owner and cannot overwrite each other.
 prompt_fruz_update_prompt
-
-zle -N zle-keymap-select
-zle -N zle-line-init
 
 # Install our chpwd and precmd hook functions.
 # https://zsh.sourceforge.io/Doc/Release/Functions.html#Hook-Functions

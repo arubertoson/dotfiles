@@ -28,20 +28,10 @@ alias rm='rm -i -v'
 alias cp='cp -i -v'
 alias mv='mv -i -v'
 
-# Wrapping for terminal
-alias nowrap='tput rmam'
-alias wrap='tput smam'
-
-# These aliases enable us to paste example code into the terminal without the
-# shell complaining about the pasted prompt symbol.
-alias %= \$=
-
 # zmv lets you batch rename (or copy or link) files by using pattern matching.
 # https://zsh.sourceforge.io/Doc/Release/User-Contributions.html#index-zmv
 autoload -Uz zmv
 alias zmv='zmv -Mv'
-alias zcp='zmv -Cv'
-alias zln='zmv -Lv'
 # Note that, unlike with Bash, you do not need to inform Zsh's completion system
 # of your aliases. It will figure them out automatically.
 
@@ -69,14 +59,4 @@ autoload -Uz dev-clone dev-new dev-scratch
 # Auto-ls when changing directories
 chpwd() {
   clear -x && la
-}
-
-# zf - custom fzf + zoxide function to easily jump to frequently or recently used directories
-zf() {
-  cd "$(zoxide query --list --score | fzf --height 40% --layout reverse --info inline --border --preview "eza --all --group-directories-first --header --long --no-user --no-permissions --color=always {2}" --no-sort | awk '{print $2}')"
-}
-
-# Load a .env file into the current shell
-load_env() {
-  set -o allexport && source .env && set +o allexport
 }

@@ -5,6 +5,13 @@
 # Note: For historical reasons, there are other dotfiles, besides .zshenv and
 # .zshrc, that zsh reads, but there is really no need to use those.
 
+# Machine-local values are exported only for commands launched from interactive shells.
+if [[ -f "$HOME/.env" ]]; then
+  set -a
+  source "$HOME/.env"
+  set +a
+fi
+
 () {
   # `local` sets the variable's scope to this function and its descendendants.
   local gitdir=~/Git  # where to keep repos and plugins
@@ -29,11 +36,6 @@
 } "$@"
 
 # After init setup.
-if command -v mise >/dev/null 2>&1; then
-  eval "$(mise activate zsh --shims)"
-  znap fpath _mise 'mise completions zsh'
-fi
-
 if command -v zoxide >/dev/null 2>&1; then
   znap eval zoxide 'zoxide init zsh'
 fi

@@ -55,10 +55,3 @@ done
 # start looking in that dir instead.
 ZDOTDIR=$(realpath "${XDG_CONFIG_HOME}/zsh")
 ZSH_CACHE="${XDG_CACHE_HOME}/zsh"
-
-# Global environment varaibles
-if [[ -f ~/.env ]]; then
-  set -a
-  source ~/.env
-  set +a
-fi

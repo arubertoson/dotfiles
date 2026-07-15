@@ -1,16 +1,43 @@
 #!/bin/zsh
 
-##
-# Key bindings
-#
-# zsh-autocomplete and zsh-edit add many useful keybindings. See each of their
-# respective docs for the full list:
-# https://github.com/marlonrichert/zsh-autocomplete/blob/main/README.md#key-bindings
-# https://github.com/marlonrichert/zsh-edit/blob/main/README.md#key-bindings
-#
+# Custom bindings load after all plugins so they intentionally override plugin
+# defaults. Autocomplete menu bindings live in conf.plug/zsh-autocomplete.zsh.
 
 # Enable the use of Ctrl-Q and Ctrl-S for keyboard shortcuts.
 unsetopt FLOW_CONTROL
+
+bindkey -M viins '^[' vi-cmd-mode
+bindkey -M viins '^P' history-search-backward
+bindkey -M viins '^N' history-search-forward
+bindkey -M vicmd 'k' up-line-or-search
+bindkey -M vicmd 'N' history-search-backward
+
+cursor-set-vi-mode() {
+  case ${KEYMAP:-viins} in
+    vicmd) printf '\e[2 q' ;;
+    *) printf '\e[6 q' ;;
+  esac
+}
+
+keymap-ui-update() {
+  cursor-set-vi-mode
+  prompt_fruz_update_prompt
+  zle .reset-prompt
+}
+
+# These standard widgets are registered once, after plugins, so cursor and
+# prompt updates cannot replace one another.
+zle-keymap-select() {
+  keymap-ui-update
+}
+
+zle-line-init() {
+  keymap-ui-update
+}
+
+zle -N zle-keymap-select
+zle -N zle-line-init
+cursor-set-vi-mode
 
 # Ctrl-D to noop to avoid exiting the shell (so fucking tired of doing it)
 noop() {}
@@ -33,7 +60,7 @@ autoload -Uz edit-command-line
 zle -N edit-command-line
 bindkey '^X^E' edit-command-line
 
-# fzf widgets
+# Keep fzf history on Ctrl-R instead of zsh-autocomplete's history widget.
 if (( ${+functions[fzf-history]} )); then
   zle -N fzf-history
   bindkey -M main '^r' fzf-history
