@@ -1,122 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# SSH bootstrap stage - Set up SSH keys and GitHub configuration
-# Ensures secure SSH setup with GitHub-specific key for development
-# Supports multiple profiles (personal/work) for different GitHub accounts
-
-SSH_DIR="${HOME}/.ssh"
-SSH_CONFIG="${SSH_DIR}/config"
-
-log() { printf "\033[1;36m[ssh-bootstrap]\033[0m %s\n" "$*"; }
-
-ensure_ssh_directory() {
-    if [ ! -d "$SSH_DIR" ]; then
-        mkdir -p "$SSH_DIR"
-        # SSH requires 700 permissions to prevent unauthorized access
-        chmod 700 "$SSH_DIR"
-        log "Created SSH directory with proper permissions"
-    fi
-
-    # SSH private keys must be 600 to prevent other users from reading them
-    chmod 600 "${SSH_DIR}"/* 2>/dev/null || true
-}
-
-generate_github_key() {
-    local email="$1"
-    local profile="${2:-}"
-
-    # Determine key name and host based on profile
-    if [ "$profile" = "work" ]; then
-        GITHUB_KEY="${SSH_DIR}/id_ed25519_github.work"
-    else
-        GITHUB_KEY="${SSH_DIR}/id_ed25519_github"
-    fi
-
-    if [ ! -f "$GITHUB_KEY" ]; then
-        if [ $# -eq 0 ] || [ -z "$email" ]; then
-            if [ "$profile" = "work" ]; then
-                echo "Enter your work email address for GitHub SSH key:"
-            else
-                echo "Enter your email address for GitHub SSH key:"
-            fi
-            read -r email
-            if [ -z "$email" ]; then
-                log "Email is required for SSH key generation"
-                exit 1
-            fi
-        fi
-
-        ensure_ssh_directory
-
-        # Use Ed25519 with high KDF rounds for better security than RSA
-        log "Generating GitHub-specific SSH key for ${profile:-personal} account..."
-        ssh-keygen -t ed25519 -a 100 -C "$email" -f "$GITHUB_KEY" -N ""
-    else
-        log "GitHub SSH key for ${profile:-personal} account already exists"
-    fi
-}
-
-start_ssh_agent() {
-    log "Starting SSH agent and adding key..."
-    eval "$(ssh-agent -s)"
-
-    # Check if key is already loaded to avoid duplicates
-    ssh-add -l >/dev/null 2>&1 || true
-    ssh-add "$GITHUB_KEY"
-}
-
-configure_github_ssh() {
-    local profile="${1:-}"
-
-    # Determine host based on profile
-    if [ "$profile" = "work" ]; then
-        GITHUB_HOST="github.work"
-    else
-        GITHUB_HOST="github.com"
-    fi
-
-    if ! grep -q "Host $GITHUB_HOST" "$SSH_CONFIG" 2>/dev/null; then
-        log "Adding GitHub SSH configuration for ${profile:-personal} account..."
-        cat >>"$SSH_CONFIG" <<EOF
-Host $GITHUB_HOST
-  HostName github.com
-  User git
-  IdentityFile ${GITHUB_KEY}
-  IdentitiesOnly yes
-EOF
-    else
-        log "GitHub SSH configuration for ${profile:-personal} account already exists"
-    fi
-
-    # SSH config must be 600 for security
-    chmod 600 "$SSH_CONFIG"
-}
-
-display_public_key() {
-    local profile="${1:-}"
-    local account_type="${profile:-personal}"
-
-    log "GitHub public key for $account_type account (add this to GitHub → Settings → SSH and GPG keys):"
-    echo "----- BEGIN PUBLIC KEY TO PASTE INTO GITHUB -----"
-    cat "${GITHUB_KEY}.pub"
-    echo "----- END PUBLIC KEY -----"
-
-    if [ "$profile" = "work" ]; then
-        log "Use this key with: git@github.work:organization/repo.git"
-    else
-        log "Use this key with: git@github.com:username/repo.git"
-    fi
-}
-
-# Parse arguments
+REPO_ROOT="$(dirname "$(dirname "$(realpath "${BASH_SOURCE[0]}")")")"
 EMAIL="${1:-}"
-PROFILE="${2:-}"
+PROFILE="${2:-home}"
 
-generate_github_key "$EMAIL" "$PROFILE"
-start_ssh_agent
-configure_github_ssh "$PROFILE"
-display_public_key "$PROFILE"
+case "$PROFILE" in
+  ""|home|personal) PROFILE=home ;;
+  work) ;;
+  *)
+    echo "usage: $0 [email] [home|work]" >&2
+    exit 2
+    ;;
+esac
 
-log "SSH bootstrap complete for ${PROFILE:-personal} account"
+# shellcheck disable=SC1091
+source "$REPO_ROOT/lib/github.sh"
+# shellcheck disable=SC1091
+source "$REPO_ROOT/lib/ssh.sh"
 
+github-auth-interactive
+setup-github-ssh "$EMAIL" "$PROFILE"

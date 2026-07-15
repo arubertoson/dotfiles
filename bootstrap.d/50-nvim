@@ -1,30 +1,32 @@
 #!/usr/bin/env bash
-# bootstrap.d/50-nvim
-# Idempotent: clone/pull and symlink to ~/.config/nvim
-
 set -euo pipefail
 
-echo "[50-nvim] Setting up neovim"
-
-OWNER="arubertoson"
-REPO="nvim"
-GIT_SSH_URL="git@github.com:${OWNER}/${REPO}.git"
-
-# paths
+REPO_ROOT="$(dirname "$(dirname "$(realpath "${BASH_SOURCE[0]}")")")"
 DEV_ROOT="${XDG_DEV_HOME:-$HOME/dev}"
-TARGET_ROOT="${DEV_ROOT%/}/home/github.com/${OWNER}"
-TARGET_DIR="${TARGET_ROOT%/}/${REPO}"
-NVIM_SYMLINK="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
+TARGET_DIR="$DEV_ROOT/home/github.com/arubertoson/nvim"
+NVIM_LINK="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
+REMOTE="git@github.com:arubertoson/nvim.git"
 
-mkdir -p "$TARGET_ROOT"
-if [ ! -d "$TARGET_DIR" ]; then
-  echo "[50-nvim] cloning $GIT_SSH_URL -> $TARGET_DIR"
-  git clone "$GIT_SSH_URL" "$TARGET_DIR"
+"$REPO_ROOT/bootstrap.d/55-ssh" "${GITHUB_EMAIL_HOME:-}" home
+
+if [ -e "$TARGET_DIR" ] && [ ! -d "$TARGET_DIR/.git" ]; then
+  echo "[50-nvim] Target exists but is not a Git repository: $TARGET_DIR" >&2
+  exit 1
 fi
 
-# symlink to ~/.config/nvim
-mkdir -p "$(dirname "$NVIM_SYMLINK")"
+if [ ! -d "$TARGET_DIR/.git" ]; then
+  echo "[50-nvim] Cloning $REMOTE"
+  mkdir -p "$(dirname "$TARGET_DIR")"
+  git clone "$REMOTE" "$TARGET_DIR"
+else
+  echo "[50-nvim] Existing checkout left unchanged: $TARGET_DIR"
+fi
 
-ln -sfn -- "$TARGET_DIR" "$NVIM_SYMLINK"
-echo "[50-nvim] created symlink: $NVIM_SYMLINK -> $TARGET_DIR"
+mkdir -p "$(dirname "$NVIM_LINK")"
+if [ -e "$NVIM_LINK" ] && [ ! -L "$NVIM_LINK" ]; then
+  echo "[50-nvim] Refusing to replace existing path: $NVIM_LINK" >&2
+  exit 1
+fi
 
+ln -sfnT -- "$TARGET_DIR" "$NVIM_LINK"
+echo "[50-nvim] Linked $NVIM_LINK -> $TARGET_DIR"

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="$(dirname "$(dirname "$(realpath "${BASH_SOURCE[0]}")")")"
+
+# shellcheck disable=SC1091
+source "$REPO_ROOT/lib/github.sh"
+
+github-auth-interactive
