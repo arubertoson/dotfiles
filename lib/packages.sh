@@ -47,8 +47,8 @@ install-system-packages() {
       files=("$root/packages/ubuntu" "$root/packages/wsl-ubuntu")
       ;;
     *)
-      echo "[packages] Unknown DOT_PROFILE=${DOT_PROFILE:-}; skipping package install" >&2
-      return 0
+      echo "[packages] Unsupported DOT_PROFILE=${DOT_PROFILE:-}" >&2
+      return 1
       ;;
   esac
 
@@ -57,10 +57,10 @@ install-system-packages() {
 
   case "${DOT_PACKAGE_MANAGER:-}" in
     paru)
-      printf '%s\n' "$packages" | xargs -r paru -Syu --needed --noconfirm --
+      printf '%s\n' "$packages" | xargs -r paru -S --needed --noconfirm --
       ;;
     pacman)
-      printf '%s\n' "$packages" | xargs -r sudo pacman -Syu --needed --noconfirm --
+      printf '%s\n' "$packages" | xargs -r sudo pacman -S --needed --noconfirm --
       ;;
     apt)
       _dot_apt_update_once
@@ -68,6 +68,26 @@ install-system-packages() {
       ;;
     *)
       echo "[packages] Unknown DOT_PACKAGE_MANAGER=${DOT_PACKAGE_MANAGER:-}" >&2
+      return 1
+      ;;
+  esac
+}
+
+update-system-packages() {
+  if [ "${DOT_SKIP_PACKAGES:-0}" = 1 ]; then
+    echo "[packages] DOT_SKIP_PACKAGES=1; skipping system update"
+    return
+  fi
+
+  case "${DOT_PACKAGE_MANAGER:-}" in
+    paru) paru -Syu --noconfirm ;;
+    pacman) sudo pacman -Syu --noconfirm ;;
+    apt)
+      sudo apt-get update -y
+      sudo apt-get upgrade -y
+      ;;
+    *)
+      echo "[packages] Unsupported DOT_PACKAGE_MANAGER=${DOT_PACKAGE_MANAGER:-}" >&2
       return 1
       ;;
   esac

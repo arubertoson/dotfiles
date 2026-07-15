@@ -1,2 +1,0 @@
-#!/usr/bin/env bash
-exec bun x @vibe-kit/grok-cli@0.0.33 "$@"

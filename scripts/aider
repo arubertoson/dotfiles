@@ -1,2 +1,0 @@
-#!/usr/bin/env bash
-exec uvx --from "aider-chat@0.86.1" aider "$@"

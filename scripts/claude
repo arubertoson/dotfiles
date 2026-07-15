@@ -1,2 +1,0 @@
-#!/usr/bin/env bash
-exec bun x @anthropic-ai/claude-code@1.0.120 "$@"

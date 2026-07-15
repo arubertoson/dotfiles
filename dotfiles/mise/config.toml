@@ -5,23 +5,18 @@ PIP_DISABLE_PIP_VERSION_CHECK = "1"
 [tools]
 # Runtimes (fallbacks; projects still pin their own)
 node   = "lts"
-pnpm   = "11.5.2"
 python = "3.12.9"
 go     = "1.25.1"
 zig    = "0.15.1"
 rust   = "stable"
 odin   = "dev-2026-05"
 clang  = "21.1.1"
-tmux   = "latest"
-jq     = "1.8.1"
 
 process-compose = "1.94"
 
 jujutsu = "latest"
-jujutsu-ui = "latest"
 
 yt-dlp = "2026.06.09"
-deno = "2"
 bun = "latest"
 
 hunk = "0.16.0"
@@ -29,12 +24,9 @@ hunk = "0.16.0"
 ast-grep = "0.43.0"
 
 # CLU utils
-"github:dmtrKovalenko/fff"	= "0.9.4"
 "github:XAMPPRocky/tokei"	      = "12.1.2"
 "github:jdx/usage"		      = "2.2.2"
 "github:chmln/sd"		      = "1.0.0"
-"github:x-motemen/ghq"	      = "1.8.0"
-"github:joshmedeski/sesh"	      = "2.26.2"
 "github:charmbracelet/glow"	      = { version = "2.1.2", extract_all = "true" }
 "github:neovim/neovim"	      = { version = "nightly", extract_all= "true", bin_path = "nvim-linux-x86_64/bin" }
 "github:astral-sh/uv"            = { version = "0.11.17", extract_all = "true" }
@@ -51,11 +43,10 @@ ast-grep = "0.43.0"
 "github:muesli/duf"              = "0.9.1"
 "github:bootandy/dust"           = "1.2.3"
 "github:sharkdp/hyperfine"       = "1.19.0"
-"github:mikefarah/yq"            = "4.47.2"
 "github:aristocratos/btop"       = "1.4.4"
 "github:ducaale/xh"              = "0.24.1"
 "github:tree-sitter/tree-sitter" = "v0.25.9"
-ollama = "latest"
+pi = "latest"
 
 [tasks]
 

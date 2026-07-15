@@ -1,2 +1,0 @@
-#!/usr/bin/env bash
-exec bun x @google/gemini-cli@0.5.5 "$@"

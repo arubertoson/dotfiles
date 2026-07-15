@@ -1,2 +1,0 @@
-#!/usr/bin/env bash
-exec bun x @earendil-works/pi-coding-agent@0.78.0 "$@"
