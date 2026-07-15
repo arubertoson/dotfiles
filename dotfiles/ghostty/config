@@ -2,7 +2,7 @@
 
 # ─── Visuals ────────────────────────────────────────────────────────────────
 # Match the Noctalia/Ayu-ish dark palette and stay fully opaque.
-theme = Ayu
+theme = Kanagawa Dragon
 background-opacity = 1
 
 # Font: JetBrains Mono Nerd Font gives good coding readability plus icons.

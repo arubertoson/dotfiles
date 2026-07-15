@@ -1,12 +1,12 @@
-/* Minimal terminal/fzf-ish rofi theme */
+/* Minimal terminal/fzf-ish rofi theme using the Kanagawa Dragon palette. */
 * {
     font: "monospace 12";
 
-    bg:     #0b0f14;
-    bg2:    #111821;
-    fg:     #d6deeb;
-    muted:  #637083;
-    accent: #7aa2f7;
+    bg:     #181616;
+    bg2:    #282727;
+    fg:     #c5c9c5;
+    muted:  #7a8382;
+    accent: #8ba4b0;
 
     background-color: transparent;
     text-color: @fg;
