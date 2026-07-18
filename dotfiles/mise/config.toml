@@ -6,7 +6,7 @@ PIP_DISABLE_PIP_VERSION_CHECK = "1"
 # Runtimes (fallbacks; projects still pin their own)
 node   = "lts"
 python = "3.12.9"
-go     = "1.25.1"
+go     = "1.26.5"
 zig    = "0.15.1"
 rust   = "stable"
 odin   = "dev-2026-05"
