@@ -13,6 +13,7 @@ odin   = "dev-2026-05"
 clang  = "21.1.1"
 
 process-compose = "1.94"
+tmux = "3.6a"
 
 jujutsu = "latest"
 

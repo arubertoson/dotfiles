@@ -18,7 +18,6 @@ openssl
 pkgconf
 rsync
 tar
-tmux
 unzip
 wget
 zsh

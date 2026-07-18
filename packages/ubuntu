@@ -25,7 +25,6 @@ ninja-build
 pkg-config
 rsync
 tar
-tmux
 unzip
 uuid-dev
 wget

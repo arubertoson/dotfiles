@@ -18,8 +18,9 @@ bleeding-edge/custom versions such as Neovim nightly.
 Command ownership follows these boundaries:
 
 - The system package manager owns bootstrap, OS, shell, and session tools such
-  as GitHub CLI, Zsh, tmux, and jq.
-- Mise owns language runtimes and versioned user-space development tools.
+  as GitHub CLI, Zsh, and jq.
+- Mise owns language runtimes and versioned user-space development tools,
+  including tmux where configuration requires a newer release.
 - `scripts/` owns custom commands and intentional on-demand package launchers.
 - Project-specific tools belong in each project's mise configuration instead of
   the global fallback configuration.
