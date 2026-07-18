@@ -140,29 +140,62 @@ niri-clean-orphans() {
     done
 }
 
-niri-sessions() {
+niri-list-sessions() {
   require niri
   require jq
 
+  niri msg -j workspaces |
+    jq -r '.[] | select(.name != null) | .name' |
+    sort
+}
+
+niri-pick-session-rofi() {
   local result
   local code
   local ws
 
-  result="$(
-    niri msg -j workspaces |
-      jq -r '.[] | select(.name != null) | .name' |
-      sort |
-      pick-lines 'workspace >' custom-delete
-  )" || return 0
+  while true; do
+    result="$(niri-list-sessions | pick-lines 'workspace >' custom-delete)" || return 0
+    code="${result%%$'\t'*}"
+    ws="${result#*$'\t'}"
+    [[ -n "$ws" ]] || return 0
 
-  code="${result%%$'\t'*}"
-  ws="${result#*$'\t'}"
-  [[ -n "$ws" ]] || return 0
+    case "$code" in
+      0) niri-focus-workspace "$ws"; return ;;
+      10) niri-kill-workspace "$ws"; continue ;;
+      *) return 0 ;;
+    esac
+  done
+}
 
-  case "$code" in
-    0) niri-focus-workspace "$ws" ;;
-    10) niri-kill-workspace "$ws" ;;
+niri-pick-session-fzf() {
+  local selection
+  local command
+
+  command="dev-workspace list-workspaces"
+  selection="$(niri-list-sessions | FZF_DEFAULT_OPTS="$FZF_OPTS" \
+    fzf --ansi --no-hscroll --height="$FZF_HEIGHT" --layout=reverse --border \
+      --prompt='workspace >' \
+      --header='enter: switch · ctrl-d: kill · ctrl-r: refresh' \
+      --bind "ctrl-d:execute-silent(dev-workspace kill-workspace {1})+reload($command)+clear-query" \
+      --bind "ctrl-r:reload($command)+clear-query")" || return 0
+
+  [[ -n "$selection" ]] || return 0
+  niri-focus-workspace "$selection"
+}
+
+niri-pick-session() {
+  require niri
+  require jq
+
+  case "$(picker)" in
+    rofi) niri-pick-session-rofi ;;
+    fzf) require fzf; niri-pick-session-fzf ;;
   esac
+}
+
+niri-sessions() {
+  niri-pick-session
 }
 
 niri-pick-project() {
@@ -390,6 +423,12 @@ niri-dispatch() {
       ;;
     list-projects) shift; list-projects "${1:-}" ;;
     list-zoxide) list-zoxide ;;
+    list-workspaces) niri-list-sessions ;;
+    kill-workspace)
+      shift
+      [[ $# -gt 0 ]] || { usage >&2; exit 1; }
+      niri-kill-workspace "$1"
+      ;;
     --help|-h|help) usage ;;
     *) usage >&2; exit 1 ;;
   esac

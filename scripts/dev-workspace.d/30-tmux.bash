@@ -166,7 +166,7 @@ tmux-pick-session-fzf() {
     fzf --ansi --no-hscroll --height="$FZF_HEIGHT" --layout=reverse --border \
       --delimiter=$'\t' --with-nth=1,2,3 --prompt='session >' \
       --header='enter: switch · ctrl-d: kill · ctrl-r: refresh' \
-      --bind "ctrl-d:execute-silent(tmux kill-session -t ={3})+reload($command)+clear-query" \
+      --bind "ctrl-d:execute-silent(tmux kill-session -t {3})+reload($command)+clear-query" \
       --bind "ctrl-r:reload($command)+clear-query")" || return 0
 
   [[ -n "$selection" ]] || return 0

@@ -39,7 +39,8 @@ pick-lines() {
       require rofi
       if [[ "$mode" == custom-delete ]]; then
         choice="$(rofi -dmenu -i -matching fuzzy -sort -theme "$ROFI_THEME" \
-          -p "$prompt" -kb-remove-char-forward Delete -kb-custom-1 Control+d)" || code=$?
+          -p "$prompt" -kb-custom-1 Control+d)"
+        code=$?
         printf '%s\t%s\n' "$code" "$choice"
         return
       fi
