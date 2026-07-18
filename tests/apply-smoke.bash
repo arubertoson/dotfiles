@@ -36,7 +36,7 @@ run-apply() {
     LOGNAME="${LOGNAME:-${USER:-dotfiles-smoke}}" \
     SHELL="/bin/bash" \
     TERM="dumb" \
-    PATH="$STUBS:$PATH" \
+    PATH="$STUBS:/usr/bin:/bin" \
     TMPDIR="$HOME_DIR/tmp" \
     XDG_CONFIG_HOME="$CONFIG" \
     XDG_CACHE_HOME="$HOME_DIR/.cache" \
@@ -55,7 +55,8 @@ run-apply() {
     DOT_DESKTOP="none" \
     DOT_PACKAGE_MANAGER="pacman" \
     SMOKE_FORBIDDEN_LOG="$FORBIDDEN_LOG" \
-    "$JUST" --justfile "$ROOT/justfile" --working-directory "$ROOT" apply \
+    "$JUST" --shell /bin/bash --shell-arg -cu \
+      --justfile "$ROOT/justfile" --working-directory "$ROOT" apply \
       > "$APPLY_LOG" 2>&1; then
     return
   fi
