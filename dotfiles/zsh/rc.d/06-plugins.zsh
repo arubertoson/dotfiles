@@ -1,9 +1,7 @@
 #!/bin/zsh
 
-# Clone completion sources and interactive plugins in parallel. Completion
-# directories must be on fpath before zsh-autocomplete initializes compinit.
+# Clone completion sources and interactive plugins in parallel.
 local -a plugins=(
-  marlonrichert/zsh-autocomplete
   marlonrichert/zcolors
   hlissner/zsh-autopair
   adrieankhisbe/zsh-quiet-accept-line
@@ -13,12 +11,7 @@ local -a plugins=(
 
 znap clone zsh-users/zsh-completions $plugins
 fpath=(~[zsh-users/zsh-completions]/src $fpath)
-
-# Autocomplete owns completion initialization and should load before plugins
-# that wrap ZLE widgets. Local styles and keybindings intentionally apply after
-# the plugin defaults.
-znap source marlonrichert/zsh-autocomplete
-source $ZDOTDIR/rc.d/conf.plug/zsh-autocomplete.zsh
+source $ZDOTDIR/rc.d/conf.plug/zsh-completion.zsh
 
 znap source hlissner/zsh-autopair
 znap source adrieankhisbe/zsh-quiet-accept-line

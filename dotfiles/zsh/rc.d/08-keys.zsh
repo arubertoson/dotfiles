@@ -1,7 +1,7 @@
 #!/bin/zsh
 
 # Custom bindings load after all plugins so they intentionally override plugin
-# defaults. Autocomplete menu bindings live in conf.plug/zsh-autocomplete.zsh.
+# defaults. Completion menu bindings live in conf.plug/zsh-completion.zsh.
 
 # Enable the use of Ctrl-Q and Ctrl-S for keyboard shortcuts.
 unsetopt FLOW_CONTROL
@@ -60,7 +60,7 @@ autoload -Uz edit-command-line
 zle -N edit-command-line
 bindkey '^X^E' edit-command-line
 
-# Keep fzf history on Ctrl-R instead of zsh-autocomplete's history widget.
+# Keep fzf history on Ctrl-R.
 if (( ${+functions[fzf-history]} )); then
   zle -N fzf-history
   bindkey -M main '^r' fzf-history
