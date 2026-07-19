@@ -2,7 +2,6 @@
 set -euo pipefail
 
 ROOT="$(dirname "$(dirname "$(realpath "${BASH_SOURCE[0]}")")")"
-JUST="$(command -v just)"
 HOME_DIR="$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-apply-smoke.XXXXXX")"
 CONFIG="$HOME_DIR/.config"
 BIN="$HOME_DIR/.local/bin"
@@ -55,17 +54,18 @@ run-apply() {
     DOT_DESKTOP="none" \
     DOT_PACKAGE_MANAGER="pacman" \
     SMOKE_FORBIDDEN_LOG="$FORBIDDEN_LOG" \
-    "$JUST" --shell /bin/bash --shell-arg -cu \
-      --justfile "$ROOT/justfile" --working-directory "$ROOT" apply \
-      > "$APPLY_LOG" 2>&1; then
+    "$ROOT/bootstrap" apply > "$APPLY_LOG" 2>&1; then
     return
   fi
 
   cat "$APPLY_LOG" >&2
-  fail "just apply failed"
+  fail "bootstrap apply failed"
 }
 
-mkdir -p "$STUBS" "$HOME_DIR/tmp"
+mkdir -p "$STUBS" "$HOME_DIR/tmp" "$CONFIG"
+ln -s "$ROOT/dotfiles/zsh" "$CONFIG/zsh"
+ln -s "$ROOT/dotfiles/zsh/.zshenv" "$HOME_DIR/.zshenv"
+
 cat > "$STUBS/forbidden" <<'EOF'
 #!/bin/sh
 printf '%s\n' "$(basename "$0") $*" >> "${SMOKE_FORBIDDEN_LOG:?}"
@@ -79,11 +79,11 @@ done
 
 run-apply
 
-assert-link "$CONFIG/zsh" "$ROOT/dotfiles/zsh"
-assert-link "$HOME_DIR/.zshenv" "$ROOT/dotfiles/zsh/.zshenv"
-assert-link "$CONFIG/git" "$ROOT/dotfiles/git"
-assert-link "$CONFIG/mise" "$ROOT/dotfiles/mise"
-assert-link "$HOME_DIR/.tmux.conf" "$ROOT/dotfiles/.tmux.conf"
+assert-link "$CONFIG/zsh" "$ROOT/config/zsh"
+assert-link "$HOME_DIR/.zshenv" "$ROOT/config/zsh/.zshenv"
+assert-link "$CONFIG/git" "$ROOT/config/git"
+assert-link "$CONFIG/mise" "$ROOT/config/mise"
+assert-link "$HOME_DIR/.tmux.conf" "$ROOT/config/.tmux.conf"
 assert-link "$BIN/dev-workspace" "$ROOT/scripts/dev-workspace"
 
 [ ! -e "$CONFIG/niri" ] || fail "desktop dotfiles were linked for the arch profile"
@@ -92,7 +92,7 @@ assert-link "$BIN/dev-workspace" "$ROOT/scripts/dev-workspace"
 # A managed link that drifts must be repaired on the next reconciliation.
 ln -sfnT "$HOME_DIR/missing-zsh" "$CONFIG/zsh"
 run-apply
-assert-link "$CONFIG/zsh" "$ROOT/dotfiles/zsh"
+assert-link "$CONFIG/zsh" "$ROOT/config/zsh"
 
 # Existing unmanaged paths must never be replaced without explicit adoption.
 rm -- "$CONFIG/git"

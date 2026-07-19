@@ -1,92 +1,337 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(dirname "$(realpath "$BASH_SOURCE")")"
-DEV_DIR="${DOTFILES_REPO_DIR:-${XDG_DEV_HOME:-$HOME/dev}/home/github.com/arubertoson/zsh}"
+ROOT="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+DEV_DIR="${DOTFILES_REPO_DIR:-${XDG_DEV_HOME:-$HOME/dev}/home/github.com/arubertoson/dotfiles}"
+COMMAND="${1:-bootstrap}"
 
-log() { printf "\033[1;36m[BOOT]\033[0m %s\n" "$*"; }
-error() { printf "\033[1;31m[ERROR]\033[0m %s\n" "$*"; }
+log() { printf '\033[1;36m[dotfiles]\033[0m %s\n' "$*"; }
+error() { printf '\033[1;31m[error]\033[0m %s\n' "$*" >&2; }
+
+usage() {
+  cat <<'EOF'
+usage: ./bootstrap [command] [args]
+
+Commands:
+  bootstrap                 Run first-time machine setup (default)
+  apply                     Link dotfiles and scripts; refresh completions
+  packages                  Install declared system packages
+  github-auth               Configure GitHub authentication
+  mise                      Reconcile mise-managed tools
+  completions               Refresh generated Zsh completions
+  dotfiles [component]      Link all or one dotfile component
+  adopt-dotfiles            Back up conflicting paths and link dotfiles
+  scripts                   Link repository scripts
+  update [component]        Update everything, packages, mise, dotfiles, or scripts
+  ssh [email] [home|work]   Configure a GitHub SSH key
+  nvim                      Clone and link the Neovim configuration
+  detect                    Show the detected machine profile
+  status                    Show profile, tools, and managed links
+  help                      Show this help
+EOF
+}
 
 adopt-repo-location() {
-  local root_real
-  local dev_real
+  local root
+  local dev
 
-  root_real="$(realpath -m "$ROOT")"
-  dev_real="$(realpath -m "$DEV_DIR")"
+  root="$(realpath -m "$ROOT")"
+  dev="$(realpath -m "$DEV_DIR")"
 
-  [ "${DOTFILES_ADOPT_REPO:-1}" = 1 ] || return 0
-  [ "$root_real" != "$dev_real" ] || return 0
+  [ "${DOTFILES_ADOPT_REPO:-1}" = 1 ] || return
+  [ "$root" != "$dev" ] || return
 
-  if [ -L "$DEV_DIR" ] && [ "$(readlink -f "$DEV_DIR")" = "$root_real" ]; then
+  if [ -L "$DEV_DIR" ] && [ "$(readlink -f "$DEV_DIR")" = "$root" ]; then
     log "Removing old canonical symlink: $DEV_DIR"
     rm -- "$DEV_DIR"
   fi
 
   if [ -e "$DEV_DIR" ]; then
     error "Canonical repo path already exists: $DEV_DIR"
-    error "Run bootstrap from that checkout, remove it, or set DOTFILES_ADOPT_REPO=0."
+    error "Run bootstrap there, remove it, or set DOTFILES_ADOPT_REPO=0."
     exit 1
   fi
 
-  log "Moving repo into canonical location"
-  log "  from: $ROOT"
-  log "  to:   $DEV_DIR"
+  log "Moving repository to $DEV_DIR"
   mkdir -p "$(dirname "$DEV_DIR")"
   mv -- "$ROOT" "$DEV_DIR"
-  cd "$DEV_DIR"
   exec "$DEV_DIR/bootstrap" "$@"
 }
 
-adopt-repo-location "$@"
+if [ "$COMMAND" = bootstrap ]; then
+  adopt-repo-location "$@"
+fi
 
-ROOT="$(dirname "$(realpath "$BASH_SOURCE")")"
-STAGES_DIR="$ROOT/bootstrap.d"
+if [ $# -gt 0 ]; then
+  shift
+fi
 
 # shellcheck disable=SC1091
 source "$ROOT/lib/detect.sh"
+# shellcheck disable=SC1091
+source "$ROOT/lib/packages.sh"
+# shellcheck disable=SC1091
+source "$ROOT/lib/github.sh"
+# shellcheck disable=SC1091
+source "$ROOT/lib/ssh.sh"
+# shellcheck disable=SC1091
+source "$ROOT/lib/config.sh"
 
-log "Detected profile"
-_dot_detect_log | sed 's/^/[BOOT]   /'
+require-profile() {
+  case "$DOT_PROFILE" in
+    arch|arch-desktop|wsl-ubuntu) return ;;
+  esac
 
-case "$DOT_PROFILE" in
-  arch|arch-desktop|wsl-ubuntu) ;;
-  *)
-    error "Unsupported profile: $DOT_PROFILE"
-    error "Set DOT_PROFILE to arch, arch-desktop, or wsl-ubuntu."
-    exit 1
-    ;;
-esac
+  error "Unsupported profile: $DOT_PROFILE"
+  error "Set DOT_PROFILE to arch, arch-desktop, or wsl-ubuntu."
+  return 1
+}
 
-run-stage() {
+run() {
   local name="$1"
   shift
 
-  log "Running $name"
-  if "$STAGES_DIR/$name" "$@"; then
-    log "Stage $name completed successfully"
+  log "$name"
+  if "$@"; then
     return
   fi
 
-  error "Stage $name failed"
-  exit 1
+  error "$name failed"
+  return 1
 }
 
-# Bootstrap composes required setup explicitly. Optional components such as SSH
-# and Neovim have dedicated commands and do not run merely because a stage exists.
-run-stage 10-dev
-run-stage 20-mise
-run-stage 35-dotfiles mise
-run-stage 25-github-auth
-run-stage 30-cli
-run-stage 32-completions
-run-stage 35-dotfiles
-run-stage 40-scripts
-run-stage 00-zsh
+ensure-mise() {
+  if ! command -v mise >/dev/null 2>&1; then
+    curl -fsSL https://mise.jdx.dev/install.sh | sh
+    export PATH="$HOME/.local/bin:$PATH"
+  fi
 
-log "Repo location: $ROOT"
+  command -v mise >/dev/null 2>&1 || {
+    error "mise was not installed"
+    return 1
+  }
+}
 
-if command -v just >/dev/null 2>&1; then
-  log "All stages complete. Run 'just status' to check current state."
-else
-  log "All stages complete. Start a new shell, then run 'just status' once mise shims are active."
-fi
+reconcile-mise() {
+  local upgrade="${1:-0}"
+  local config="${XDG_CONFIG_HOME:-$HOME/.config}/mise/config.toml"
+
+  ensure-mise
+  github-auth-required
+  [ -f "$config" ] || {
+    error "mise config not found: $config"
+    return 1
+  }
+
+  export MISE_JOBS="${MISE_JOBS:-4}"
+  mise trust "$config" >/dev/null
+  [ "$upgrade" != 1 ] || mise upgrade -C "$HOME" -y
+  mise install -C "$HOME" -y
+
+  if mise which -C "$HOME" corepack >/dev/null 2>&1; then
+    mise exec -C "$HOME" -- corepack disable
+  fi
+}
+
+setup-shell() {
+  local zsh
+  local user="${SUDO_USER:-$USER}"
+  local current
+  local updated
+
+  zsh="$(command -v zsh || true)"
+  [ -n "$zsh" ] || {
+    error "zsh is not installed"
+    return 1
+  }
+
+  if [ -r /etc/shells ] && ! grep -qx "$zsh" /etc/shells; then
+    echo "$zsh" | sudo tee -a /etc/shells >/dev/null
+  fi
+
+  if ! command -v chsh >/dev/null 2>&1; then
+    log "chsh not found; default shell was not changed"
+    return
+  fi
+
+  current="$(getent passwd "$user" 2>/dev/null | awk -F: '{print $NF}')"
+  [ "$current" != "$zsh" ] || return
+
+  if ! sudo chsh -s "$zsh" "$user"; then
+    [ "$DOT_WSL" != 1 ] || {
+      log "chsh failed under WSL; run: chsh -s $zsh"
+      return
+    }
+    return 1
+  fi
+
+  updated="$(getent passwd "$user" 2>/dev/null | awk -F: '{print $NF}')"
+  if [ "$DOT_WSL" != 1 ] && [ -n "$updated" ] && [ "$updated" != "$zsh" ]; then
+    error "Default shell is still $updated, expected $zsh"
+    return 1
+  fi
+}
+
+apply-config() {
+  apply-dotfiles
+  link-scripts
+  generate-completions
+}
+
+setup-github-auth() {
+  ensure-mise
+  apply-dotfiles mise
+  github-auth-interactive
+}
+
+configure-github-ssh() {
+  local email="${1:-}"
+  local profile="${2:-home}"
+
+  case "$profile" in
+    ""|home|personal) profile=home ;;
+    work) ;;
+    *) error "profile must be home or work"; return 2 ;;
+  esac
+
+  setup-github-auth
+  setup-github-ssh "$email" "$profile"
+}
+
+setup-nvim() {
+  local dev="${XDG_DEV_HOME:-$HOME/dev}"
+  local target="$dev/home/github.com/arubertoson/nvim"
+  local link="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
+  local remote="git@github.com:arubertoson/nvim.git"
+
+  configure-github-ssh "${GITHUB_EMAIL_HOME:-}" home
+
+  if [ -e "$target" ] && [ ! -d "$target/.git" ]; then
+    error "Neovim target is not a Git repository: $target"
+    return 1
+  fi
+
+  if [ ! -d "$target/.git" ]; then
+    mkdir -p "$(dirname "$target")"
+    git clone "$remote" "$target"
+  else
+    log "Existing Neovim checkout left unchanged: $target"
+  fi
+
+  mkdir -p "$(dirname "$link")"
+  if [ -e "$link" ] && [ ! -L "$link" ]; then
+    error "Refusing to replace existing path: $link"
+    return 1
+  fi
+
+  ln -sfnT -- "$target" "$link"
+}
+
+bootstrap-machine() {
+  require-profile
+  log "Detected profile"
+  _dot_detect_log | sed 's/^/[dotfiles]   /'
+  run "Installing system packages" install-system-packages
+  run "Installing AUR packages" install-aur-packages
+  run "Installing mise" ensure-mise
+  run "Linking mise configuration" apply-dotfiles mise
+  run "Configuring GitHub authentication" github-auth-interactive
+  run "Installing mise tools" reconcile-mise
+  run "Generating completions" generate-completions
+  run "Linking dotfiles" apply-dotfiles
+  run "Linking scripts" link-scripts
+  run "Setting the login shell" setup-shell
+  log "Setup complete. Run 'just status' to check current state."
+}
+
+update-component() {
+  local component="${1:-}"
+
+  case "$component" in
+    packages)
+      require-profile
+      update-system-packages
+      install-system-packages
+      install-aur-packages
+      generate-completions
+      ;;
+    mise)
+      ensure-mise
+      apply-dotfiles mise
+      reconcile-mise 1
+      generate-completions
+      ;;
+    dotfiles) apply-dotfiles ;;
+    scripts) link-scripts ;;
+    "")
+      if [ -n "$(git -C "$ROOT" status --porcelain)" ]; then
+        error "Working directory not clean. Commit or stash changes first."
+        return 1
+      fi
+      git -C "$ROOT" pull --rebase
+      exec "$ROOT/bootstrap" _update-all
+      ;;
+    *) error "Unknown update component: $component"; return 2 ;;
+  esac
+}
+
+update-all() {
+  require-profile
+  update-system-packages
+  install-system-packages
+  install-aur-packages
+  ensure-mise
+  apply-dotfiles mise
+  reconcile-mise 1
+  generate-completions
+  apply-dotfiles
+  link-scripts
+  log "Update complete. Run 'just status' to verify."
+}
+
+show-status() {
+  local source
+  local name
+  local target
+
+  _dot_detect_log
+  printf 'Zsh: %s\n' "$(command -v zsh || echo 'NOT FOUND')"
+  printf 'Mise: %s\n' "$(mise --version 2>/dev/null || echo 'NOT FOUND')"
+  printf 'Scripts: %s\n' "${XDG_BIN_HOME:-$HOME/.local/bin}"
+  printf '\nManaged configuration:\n'
+
+  shopt -s dotglob nullglob
+  for source in "$ROOT"/config/*; do
+    name="$(basename "$source")"
+    target="${XDG_CONFIG_HOME:-$HOME/.config}/$name"
+    [ "$name" != .tmux.conf ] || target="$HOME/$name"
+
+    if [ -L "$target" ]; then
+      printf '%-14s -> %s\n' "$name" "$(readlink "$target")"
+    elif [ -e "$target" ]; then
+      printf '%-14s NOT LINKED (%s)\n' "$name" "$(stat -c %F "$target")"
+    else
+      printf '%-14s missing\n' "$name"
+    fi
+  done
+}
+
+case "$COMMAND" in
+  bootstrap) bootstrap-machine ;;
+  apply) apply-config ;;
+  packages) require-profile; install-system-packages; install-aur-packages ;;
+  github-auth) setup-github-auth ;;
+  mise) ensure-mise; apply-dotfiles mise; reconcile-mise; generate-completions ;;
+  completions) generate-completions ;;
+  dotfiles) apply-dotfiles "${1:-}" ;;
+  adopt-dotfiles) DOTFILES_REPLACE_DIRS=1 apply-dotfiles ;;
+  scripts) link-scripts ;;
+  update) update-component "${1:-}" ;;
+  _update-all) update-all ;;
+  ssh) configure-github-ssh "${1:-}" "${2:-}" ;;
+  nvim) setup-nvim ;;
+  detect) _dot_detect_log ;;
+  status) show-status ;;
+  help|-h|--help) usage ;;
+  *) error "Unknown command: $COMMAND"; usage >&2; exit 2 ;;
+esac

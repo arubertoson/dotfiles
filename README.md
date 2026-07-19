@@ -6,8 +6,8 @@ an optional niri desktop.
 ## First setup
 
 ```sh
-git clone https://github.com/arubertoson/zsh.git
-cd zsh
+git clone https://github.com/arubertoson/dotfiles.git
+cd dotfiles
 ./bootstrap
 ```
 
@@ -15,7 +15,7 @@ Bootstrap is the zero-dependency entrypoint. On its first run it moves the
 checkout to the canonical development path:
 
 ```text
-~/dev/home/github.com/arubertoson/zsh
+~/dev/home/github.com/arubertoson/dotfiles
 ```
 
 Set `DOTFILES_REPO_DIR` to choose another path, or set
@@ -31,7 +31,8 @@ Bootstrap:
 6. Sets Zsh as the login shell.
 
 It can be run repeatedly. SSH keys and the separate Neovim configuration are
-explicit setup operations and do not run during bootstrap.
+explicit setup operations and do not run during bootstrap. `./bootstrap help`
+lists every lifecycle command; `just` provides short aliases for the same commands.
 
 Copy `.env.example` to `~/.env` only when machine-local values are needed,
 then run `chmod 600 ~/.env`. Interactive Zsh shells export these values to the
@@ -40,21 +41,21 @@ store, not this file.
 
 ## Architecture
 
-- **`dotfiles/`** contains application configuration linked into `~/.config`
+- **`bootstrap`** is the setup and lifecycle command interface.
+- **`config/`** contains application configuration linked into `~/.config`
   and other documented targets.
-- **`dotfiles/zsh/`** contains `.zshenv`, `.zshrc`, ordered `rc.d/` modules, and
+- **`config/zsh/`** contains `.zshenv`, `.zshrc`, ordered `rc.d/` modules, and
   autoloadable functions.
-- **`bootstrap.d/`** contains setup operations explicitly composed by
-  `bootstrap` and `just`; executable files are not automatically run.
 - **`scripts/`** contains standalone commands linked into `~/.local/bin`.
-- **`lib/`** contains shared profile, package, GitHub, and SSH helpers.
+- **`lib/`** contains reusable detection, package, configuration, GitHub, and SSH logic.
 - **`packages/`** contains profile-specific system package manifests.
+- **`justfile`** contains convenience aliases that delegate to `bootstrap`.
 
 Zsh is managed as:
 
 ```text
-~/.zshenv     -> <repo>/dotfiles/zsh/.zshenv
-~/.config/zsh -> <repo>/dotfiles/zsh
+~/.zshenv     -> <repo>/config/zsh/.zshenv
+~/.config/zsh -> <repo>/config/zsh
 ```
 
 ## Profiles
@@ -191,11 +192,11 @@ or otherwise modified.
 
 The `arch-desktop` profile applies:
 
-- `dotfiles/niri/`
-- `dotfiles/ghostty/`
-- `dotfiles/rofi/`
-- `dotfiles/noctalia/`
-- `dotfiles/environment.d/`
+- `config/niri/`
+- `config/ghostty/`
+- `config/rofi/`
+- `config/noctalia/`
+- `config/environment.d/`
 
 Other shared configuration, including Git, mise, tmux, and Zsh, applies to all
 supported profiles.
