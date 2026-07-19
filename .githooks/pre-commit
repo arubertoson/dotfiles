@@ -5,8 +5,12 @@ ROOT="$(git rev-parse --show-toplevel)"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
+printf '[pre-commit] Checking shell formatting and syntax...\n'
+
 export PATH="$(mise exec -C "$ROOT" -- printenv PATH)"
 git -C "$ROOT" checkout-index --all --prefix="$TMP/"
 
 cd "$TMP"
 just format-check shell-syntax
+
+printf '[pre-commit] Checks passed.\n'
