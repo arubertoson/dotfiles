@@ -2,7 +2,6 @@ include "./cfg/animation.kdl"
 include "./cfg/autostart.kdl"
 include "./cfg/keybinds.kdl"
 include "./cfg/input.kdl"
-include "./cfg/display.kdl"
 include "./cfg/layout.kdl"
 
 workspace "main"

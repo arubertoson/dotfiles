@@ -12,18 +12,14 @@ Profiles currently compose manifests like this:
 - `arch-desktop` -> `arch` + `arch-desktop` + `arch-aur` + `arch-desktop-aur`
 - `wsl-ubuntu` -> `ubuntu` + `wsl-ubuntu`
 
-Keep OS/session packages here. Prefer mise for user-space developer tools and
-bleeding-edge/custom versions such as Neovim nightly.
+The manifests intentionally start with only each platform's standard build
+toolchain: `base-devel` on Arch and `build-essential` on Ubuntu. Add OS/session
+packages only when the managed configuration requires them. Keep empty profile
+manifests as extension-point contracts.
 
-Command ownership follows these boundaries:
-
-- The system package manager owns bootstrap, OS, shell, and session tools such
-  as GitHub CLI, Zsh, and jq.
-- Mise owns language runtimes and versioned user-space development tools,
-  including tmux where configuration requires a newer release.
-- `scripts/` owns custom commands and intentional on-demand package launchers.
-- Project-specific tools belong in each project's mise configuration instead of
-  the global fallback configuration.
+Prefer mise for language runtimes and versioned user-space developer tools.
+Custom commands belong in `scripts/`, and project-specific tools belong in each
+project's mise configuration instead of the global fallback configuration.
 
 `just packages` installs missing declarations without intentionally upgrading
 the full system. `just update` performs the platform update first and then

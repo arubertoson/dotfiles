@@ -31,8 +31,6 @@ bootstrap:
 apply:
   @./bootstrap apply
 
-bootstrap-config: apply
-
 packages:
   @./bootstrap packages
 

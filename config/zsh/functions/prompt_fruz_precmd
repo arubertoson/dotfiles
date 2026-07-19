@@ -15,12 +15,6 @@ function is_inside_git_dir {
     return 1
 }
 
-set_window_title() {
-  print -n '\e]0;'  # tell the terminal we are setting the title
-  print -rn $1
-  print -n '\a'  # end set title
-}
-
 # This pattern, of redefining the function being called and then calling it
 # again (at the bottom of this file), lets you perform setup tasks the first
 # time the function is called and ensures they are performed only once.

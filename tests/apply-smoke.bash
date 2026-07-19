@@ -42,7 +42,6 @@ run-apply() {
     XDG_DATA_HOME="$HOME_DIR/.local/share" \
     XDG_STATE_HOME="$HOME_DIR/.local/state" \
     XDG_BIN_HOME="$BIN" \
-    XDG_APP_HOME="$HOME_DIR/.local/package" \
     XDG_DEV_HOME="$HOME_DIR/dev" \
     MISE_CONFIG_DIR="$CONFIG/mise" \
     MISE_DATA_DIR="$HOME_DIR/.local/share/mise" \

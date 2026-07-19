@@ -23,10 +23,7 @@ export XDG_STATE_HOME="${HOME_LOCAL}/state"
 
 # Extended XDG with some custom locations
 export XDG_BIN_HOME="${HOME_LOCAL}/bin"
-export XDG_APP_HOME="${HOME_LOCAL}/package"
 export XDG_DEV_HOME="${HOME}/dev"
-export XDG_WORKTREES_HOME="${XDG_DEV_HOME}/.worktrees"
-export XDG_WINDOWS_DEV_HOME="/mnt/c/Users/Macke/dev"
 
 export EDITOR="nvim"
 
@@ -38,7 +35,6 @@ directories=(
   "$XDG_DATA_HOME"
   "$XDG_STATE_HOME"
   "$XDG_BIN_HOME"
-  "$XDG_APP_HOME"
   "$XDG_DEV_HOME"
 )
 
