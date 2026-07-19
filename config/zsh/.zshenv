@@ -6,7 +6,7 @@
 # disable globals rcs, we want control of what is in our environment
 unsetopt GLOBAL_RCS
 
-# Disable global compinit: Optimizes zsh startup by skipping global 
+# Disable global compinit: Optimizes zsh startup by skipping global
 # autocompletion initialization. We are handling compinit ourselves.
 skip_global_compinit=1
 
@@ -14,8 +14,8 @@ skip_global_compinit=1
 HOME_LOCAL="${HOME}/.local"
 
 # Set XDG (XDG Base Directory Specification) environment variables. In Ubuntu, as
-# in many Linux distributions, the XDG environment variables are not always 
-# explicitly set by default. 
+# in many Linux distributions, the XDG environment variables are not always
+# explicitly set by default.
 export XDG_CONFIG_HOME="${HOME}/.config"
 export XDG_CACHE_HOME="${HOME}/.cache"
 export XDG_DATA_HOME="${HOME_LOCAL}/share"
@@ -33,25 +33,25 @@ export EDITOR="nvim"
 # Ensure that XDG directories exists and can be used by different
 # applications.
 directories=(
-    "$XDG_CONFIG_HOME"
-    "$XDG_CACHE_HOME"
-    "$XDG_DATA_HOME"
-    "$XDG_STATE_HOME"
-    "$XDG_BIN_HOME"
-    "$XDG_APP_HOME"
-    "$XDG_DEV_HOME"
+  "$XDG_CONFIG_HOME"
+  "$XDG_CACHE_HOME"
+  "$XDG_DATA_HOME"
+  "$XDG_STATE_HOME"
+  "$XDG_BIN_HOME"
+  "$XDG_APP_HOME"
+  "$XDG_DEV_HOME"
 )
 
 # Iterate through each directory and create it if it doesn't exist
 for dir in "${directories[@]}"; do
-    if [ ! -d "$dir" ]; then
-        echo "Creating directory: $dir"
-        mkdir -p "$dir"
-    fi
+  if [ ! -d "$dir" ]; then
+    echo "Creating directory: $dir"
+    mkdir -p "$dir"
+  fi
 done
 
-# Tell zsh where to look for our dotfiles. By default, Zsh will look for 
-# dotfiles in $HOME (and find this file), but once $ZDOTDIR is defined, it will 
+# Tell zsh where to look for our dotfiles. By default, Zsh will look for
+# dotfiles in $HOME (and find this file), but once $ZDOTDIR is defined, it will
 # start looking in that dir instead.
 ZDOTDIR=$(realpath "${XDG_CONFIG_HOME}/zsh")
 ZSH_CACHE="${XDG_CACHE_HOME}/zsh"

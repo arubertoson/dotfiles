@@ -72,8 +72,8 @@ tmux-ensure-session() {
   fi
 
   legacy="$(tmux-legacy-session-name "$dir")"
-  if [[ "$legacy" != "$session" ]] && \
-    tmux has-session -t "=$legacy" 2>/dev/null && \
+  if [[ "$legacy" != "$session" ]] &&
+    tmux has-session -t "=$legacy" 2>/dev/null &&
     tmux-session-matches-path "$legacy" "$dir"; then
     tmux-restore-layout "$dir" "$legacy"
     printf '%s\n' "$legacy"
@@ -110,7 +110,10 @@ tmux-open-path() {
   local session
 
   dir="$(canonical-path "$1")"
-  [[ -d "$dir" ]] || { echo "dev-workspace: not a directory: $dir" >&2; exit 1; }
+  [[ -d "$dir" ]] || {
+    echo "dev-workspace: not a directory: $dir" >&2
+    exit 1
+  }
 
   session="$(tmux-ensure-session "$dir")"
   tmux-switch-session "$session"
@@ -149,8 +152,14 @@ tmux-pick-session-rofi() {
     [[ -n "$session" ]] || return 0
 
     case "$code" in
-      0) tmux-switch-session "$session"; return ;;
-      10) tmux kill-session -t "=$session"; continue ;;
+      0)
+        tmux-switch-session "$session"
+        return
+        ;;
+      10)
+        tmux kill-session -t "=$session"
+        continue
+        ;;
       *) return 0 ;;
     esac
   done
@@ -164,10 +173,10 @@ tmux-pick-session-fzf() {
   command="tmux list-sessions -F '#{session_windows} windows	#{session_attached} attached	#S'"
   selection="$(tmux-list-sessions | FZF_DEFAULT_OPTS="$FZF_OPTS" \
     fzf --ansi --no-hscroll --height="$FZF_HEIGHT" --layout=reverse --border \
-      --delimiter=$'\t' --with-nth=1,2,3 --prompt='session >' \
-      --header='enter: switch · ctrl-d: kill · ctrl-r: refresh' \
-      --bind "ctrl-d:execute-silent(tmux kill-session -t {3})+reload($command)+clear-query" \
-      --bind "ctrl-r:reload($command)+clear-query")" || return 0
+    --delimiter=$'\t' --with-nth=1,2,3 --prompt='session >' \
+    --header='enter: switch · ctrl-d: kill · ctrl-r: refresh' \
+    --bind "ctrl-d:execute-silent(tmux kill-session -t {3})+reload($command)+clear-query" \
+    --bind "ctrl-r:reload($command)+clear-query")" || return 0
 
   [[ -n "$selection" ]] || return 0
   session="${selection##*$'\t'}"
@@ -179,7 +188,10 @@ tmux-pick-session() {
 
   case "$(picker)" in
     rofi) tmux-pick-session-rofi ;;
-    fzf) require fzf; tmux-pick-session-fzf ;;
+    fzf)
+      require fzf
+      tmux-pick-session-fzf
+      ;;
   esac
 }
 
@@ -231,7 +243,7 @@ tmux-windows() {
   local selection
   local index
 
-  selection="$(tmux list-windows -F '#I\t#W\t#{pane_current_command}' | \
+  selection="$(tmux list-windows -F '#I\t#W\t#{pane_current_command}' |
     pick-lines 'window >')" || return 0
   [[ -n "$selection" ]] || return 0
 
@@ -241,21 +253,39 @@ tmux-windows() {
 
 tmux-dispatch() {
   case "${1:-project}" in
-    project|projects) tmux-pick-project ;;
-    zoxide|z) tmux-pick-zoxide ;;
-    sessions|session|active) tmux-pick-session ;;
-    windows|window|win) tmux-windows ;;
-    open-path|restore-path)
+    project | projects) tmux-pick-project ;;
+    zoxide | z) tmux-pick-zoxide ;;
+    sessions | session | active) tmux-pick-session ;;
+    windows | window | win) tmux-windows ;;
+    open-path | restore-path)
       shift
-      [[ $# -gt 0 ]] || { usage >&2; exit 1; }
+      [[ $# -gt 0 ]] || {
+        usage >&2
+        exit 1
+      }
       tmux-open-path "$1"
       ;;
-    toggle|previous|back) require tmux; tmux switch-client -l ;;
-    new) shift; tmux-new "${1:-term}" ;;
-    slot) shift; tmux-slot "${1:-dev}" ;;
-    list-projects) shift; list-projects "${1:-}" ;;
+    toggle | previous | back)
+      require tmux
+      tmux switch-client -l
+      ;;
+    new)
+      shift
+      tmux-new "${1:-term}"
+      ;;
+    slot)
+      shift
+      tmux-slot "${1:-dev}"
+      ;;
+    list-projects)
+      shift
+      list-projects "${1:-}"
+      ;;
     list-zoxide) list-zoxide ;;
-    --help|-h|help) usage ;;
-    *) usage >&2; exit 1 ;;
+    --help | -h | help) usage ;;
+    *)
+      usage >&2
+      exit 1
+      ;;
   esac
 }

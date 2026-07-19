@@ -40,7 +40,7 @@ zle -N zle-line-init
 cursor-set-vi-mode
 
 # Ctrl-D to noop to avoid exiting the shell (so fucking tired of doing it)
-noop() {}
+noop() { }
 zle -N noop
 
 bindkey -M main '^d' noop
@@ -61,7 +61,7 @@ zle -N edit-command-line
 bindkey '^X^E' edit-command-line
 
 # Keep fzf history on Ctrl-R.
-if (( ${+functions[fzf-history]} )); then
+if ((${+functions[fzf - history]})); then
   zle -N fzf-history
   bindkey -M main '^r' fzf-history
   bindkey -M viins '^r' fzf-history
@@ -69,17 +69,17 @@ if (( ${+functions[fzf-history]} )); then
   bindkey -M vicmd '^Xr' fzf-history
 fi
 
-if (( ${+functions[fzf-echo-env]} )); then
+if ((${+functions[fzf - echo - env]})); then
   zle -N fzf-echo-env
   bindkey -M vicmd '^Xe' fzf-echo-env
 fi
 
-if (( ${+functions[fzf-change-to-dev-project]} )); then
+if ((${+functions[fzf - change - to - dev - project]})); then
   zle -N fzf-change-to-dev-project
   bindkey -M vicmd '^Xp' fzf-change-to-dev-project
 fi
 
-if (( ${+functions[fzf-change-to-zoxide-directory]} )); then
+if ((${+functions[fzf - change - to - zoxide - directory]})); then
   zle -N fzf-change-to-zoxide-directory
   bindkey -M vicmd '^Xz' fzf-change-to-zoxide-directory
 fi

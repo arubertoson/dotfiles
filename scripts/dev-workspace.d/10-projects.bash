@@ -8,7 +8,7 @@ cache-fresh() {
   mtime="$(stat -c %Y "$PROJECT_CACHE" 2>/dev/null || true)"
   [[ -n "$mtime" ]] || return 1
 
-  (( now - mtime < CACHE_TTL ))
+  ((now - mtime < CACHE_TTL))
 }
 
 write-project-cache() {
@@ -31,7 +31,7 @@ write-project-cache() {
 
       seen[$dir]=git
       label="$(pretty-path "$dir")"
-      printf 'git\t%s\t%s\n' "$label" "$dir" >> "$tmp"
+      printf 'git\t%s\t%s\n' "$label" "$dir" >>"$tmp"
     done < <(
       find "$DEV_ROOT" -mindepth 2 -maxdepth "$PROJECT_MAX_DEPTH" \
         \( -type d -name .git -print -prune \) -o \
@@ -46,7 +46,7 @@ write-project-cache() {
         [[ -z "${seen[$dir]:-}" ]] || continue
         seen[$dir]=jj
         label="$(pretty-path "$dir")"
-        printf 'jj\t%s\t%s\n' "$label" "$dir" >> "$tmp"
+        printf 'jj\t%s\t%s\n' "$label" "$dir" >>"$tmp"
         continue
       fi
 
@@ -63,7 +63,7 @@ write-project-cache() {
 
         seen[$dir]=jj
         label="$(pretty-path "$dir")"
-        printf 'jj\t%s\t%s\n' "$label" "$dir" >> "$tmp"
+        printf 'jj\t%s\t%s\n' "$label" "$dir" >>"$tmp"
       done < <(
         jj workspace list -R "$root" --ignore-working-copy \
           -T 'root ++ "\n"' 2>/dev/null || true

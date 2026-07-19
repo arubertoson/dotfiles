@@ -19,6 +19,7 @@ Commands:
   github-auth               Configure GitHub authentication
   mise                      Reconcile mise-managed tools
   completions               Refresh generated Zsh completions
+  hooks                     Install and activate repository hooks
   dotfiles [component]      Link all or one dotfile component
   adopt-dotfiles            Back up conflicting paths and link dotfiles
   scripts                   Link repository scripts
@@ -79,7 +80,7 @@ source "$ROOT/lib/config.sh"
 
 require-profile() {
   case "$DOT_PROFILE" in
-    arch|arch-desktop|wsl-ubuntu) return ;;
+    arch | arch-desktop | wsl-ubuntu) return ;;
   esac
 
   error "Unsupported profile: $DOT_PROFILE"
@@ -131,6 +132,13 @@ reconcile-mise() {
   if mise which -C "$HOME" corepack >/dev/null 2>&1; then
     mise exec -C "$HOME" -- corepack disable
   fi
+}
+
+setup-repo-hooks() {
+  ensure-mise
+  mise trust "$ROOT/.mise.toml" >/dev/null
+  mise install -C "$ROOT" -y
+  git -C "$ROOT" config core.hooksPath .githooks
 }
 
 setup-shell() {
@@ -189,9 +197,12 @@ configure-github-ssh() {
   local profile="${2:-home}"
 
   case "$profile" in
-    ""|home|personal) profile=home ;;
+    "" | home | personal) profile=home ;;
     work) ;;
-    *) error "profile must be home or work"; return 2 ;;
+    *)
+      error "profile must be home or work"
+      return 2
+      ;;
   esac
 
   setup-github-auth
@@ -237,6 +248,7 @@ bootstrap-machine() {
   run "Linking mise configuration" apply-dotfiles mise
   run "Configuring GitHub authentication" github-auth-interactive
   run "Installing mise tools" reconcile-mise
+  run "Configuring repository hooks" setup-repo-hooks
   run "Generating completions" generate-completions
   run "Linking dotfiles" apply-dotfiles
   run "Linking scripts" link-scripts
@@ -271,7 +283,10 @@ update-component() {
       git -C "$ROOT" pull --rebase
       exec "$ROOT/bootstrap" _update-all
       ;;
-    *) error "Unknown update component: $component"; return 2 ;;
+    *)
+      error "Unknown update component: $component"
+      return 2
+      ;;
   esac
 }
 
@@ -283,6 +298,7 @@ update-all() {
   ensure-mise
   apply-dotfiles mise
   reconcile-mise 1
+  setup-repo-hooks
   generate-completions
   apply-dotfiles
   link-scripts
@@ -319,10 +335,20 @@ show-status() {
 case "$COMMAND" in
   bootstrap) bootstrap-machine ;;
   apply) apply-config ;;
-  packages) require-profile; install-system-packages; install-aur-packages ;;
+  packages)
+    require-profile
+    install-system-packages
+    install-aur-packages
+    ;;
   github-auth) setup-github-auth ;;
-  mise) ensure-mise; apply-dotfiles mise; reconcile-mise; generate-completions ;;
+  mise)
+    ensure-mise
+    apply-dotfiles mise
+    reconcile-mise
+    generate-completions
+    ;;
   completions) generate-completions ;;
+  hooks) setup-repo-hooks ;;
   dotfiles) apply-dotfiles "${1:-}" ;;
   adopt-dotfiles) DOTFILES_REPLACE_DIRS=1 apply-dotfiles ;;
   scripts) link-scripts ;;
@@ -332,6 +358,10 @@ case "$COMMAND" in
   nvim) setup-nvim ;;
   detect) _dot_detect_log ;;
   status) show-status ;;
-  help|-h|--help) usage ;;
-  *) error "Unknown command: $COMMAND"; usage >&2; exit 2 ;;
+  help | -h | --help) usage ;;
+  *)
+    error "Unknown command: $COMMAND"
+    usage >&2
+    exit 2
+    ;;
 esac

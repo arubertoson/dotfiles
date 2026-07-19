@@ -19,12 +19,11 @@ fzf-echo-env() {
   zle reset-prompt
 }
 
-
 fzf-history() {
   local command
 
-  command="$(fc -rl 1 | FZF_DEFAULT_OPTS="$FZF_DEFAULT_OPTS" fzf --query="$LBUFFER" \
-    | sed 's/^[[:space:]]*[0-9]*[[:space:]]*//')"
+  command="$(fc -rl 1 | FZF_DEFAULT_OPTS="$FZF_DEFAULT_OPTS" fzf --query="$LBUFFER" |
+    sed 's/^[[:space:]]*[0-9]*[[:space:]]*//')"
 
   if [[ -z "$command" ]]; then
     zle reset-prompt
@@ -52,7 +51,7 @@ fzf-pick-workspace-line() {
 
   eval "$command" | FZF_DEFAULT_OPTS="${FZF_DEFAULT_OPTS:-}" \
     fzf --ansi --no-hscroll --height=40% --layout=reverse --exit-0 \
-      --delimiter=$'\t' --with-nth=1,2 --prompt="$prompt" "${bind[@]}"
+    --delimiter=$'\t' --with-nth=1,2 --prompt="$prompt" "${bind[@]}"
 }
 
 fzf-workspace-path() {

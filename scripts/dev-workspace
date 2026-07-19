@@ -68,7 +68,7 @@ niri-record-path() {
 
   file="$(niri-state-file "$ws")"
   mkdir -p "$STATE_DIR"
-  printf '%s\n' "$dir" > "$file"
+  printf '%s\n' "$dir" >"$file"
 }
 
 niri-open-path() {
@@ -81,7 +81,10 @@ niri-open-path() {
   local existing
 
   [[ -d "$dir" ]] || dir="$(abs-path "$dir")"
-  [[ -d "$dir" ]] || { echo "dev-workspace: not a directory: $dir" >&2; exit 1; }
+  [[ -d "$dir" ]] || {
+    echo "dev-workspace: not a directory: $dir" >&2
+    exit 1
+  }
 
   ws="$(workspace-name "$dir")"
   niri-record-path "$ws" "$dir"
@@ -107,7 +110,7 @@ niri-kill-workspace() {
   local win
 
   case "$ws" in
-    main|browser)
+    main | browser)
       notify-send "dev-workspace" "Refusing to remove pinned workspace: $ws" 2>/dev/null || true
       return 0
       ;;
@@ -161,8 +164,14 @@ niri-pick-session-rofi() {
     [[ -n "$ws" ]] || return 0
 
     case "$code" in
-      0) niri-focus-workspace "$ws"; return ;;
-      10) niri-kill-workspace "$ws"; continue ;;
+      0)
+        niri-focus-workspace "$ws"
+        return
+        ;;
+      10)
+        niri-kill-workspace "$ws"
+        continue
+        ;;
       *) return 0 ;;
     esac
   done
@@ -175,10 +184,10 @@ niri-pick-session-fzf() {
   command="dev-workspace list-workspaces"
   selection="$(niri-list-sessions | FZF_DEFAULT_OPTS="$FZF_OPTS" \
     fzf --ansi --no-hscroll --height="$FZF_HEIGHT" --layout=reverse --border \
-      --prompt='workspace >' \
-      --header='enter: switch · ctrl-d: kill · ctrl-r: refresh' \
-      --bind "ctrl-d:execute-silent(dev-workspace kill-workspace {1})+reload($command)+clear-query" \
-      --bind "ctrl-r:reload($command)+clear-query")" || return 0
+    --prompt='workspace >' \
+    --header='enter: switch · ctrl-d: kill · ctrl-r: refresh' \
+    --bind "ctrl-d:execute-silent(dev-workspace kill-workspace {1})+reload($command)+clear-query" \
+    --bind "ctrl-r:reload($command)+clear-query")" || return 0
 
   [[ -n "$selection" ]] || return 0
   niri-focus-workspace "$selection"
@@ -190,7 +199,10 @@ niri-pick-session() {
 
   case "$(picker)" in
     rofi) niri-pick-session-rofi ;;
-    fzf) require fzf; niri-pick-session-fzf ;;
+    fzf)
+      require fzf
+      niri-pick-session-fzf
+      ;;
   esac
 }
 
@@ -238,7 +250,10 @@ niri-dev-context() {
   fi
 
   project="$(<"$file")"
-  [[ -d "$project" ]] || { echo "dev-workspace: project missing: $project" >&2; exit 1; }
+  [[ -d "$project" ]] || {
+    echo "dev-workspace: project missing: $project" >&2
+    exit 1
+  }
 
   hash="$(printf '%s' "$ws_name" | sha1sum | awk '{print substr($1,1,12)}')"
   printf '%s\t%s\t%s\t%s\n' "$ws_id" "$ws_name" "$project" "$hash"
@@ -408,34 +423,55 @@ niri-windows() {
 
 niri-dispatch() {
   case "${1:-project}" in
-    project|projects) niri-pick-project ;;
-    zoxide|z) niri-pick-zoxide ;;
-    sessions|session|active) niri-sessions ;;
-    windows|window|win) niri-windows ;;
-    toggle|previous|back) niri-toggle-workspace ;;
-    clean|cleanup|orphans) niri-clean-orphans ;;
-    new) shift; niri-new "${1:-term}" ;;
-    slot) shift; niri-slot "${1:-dev}" ;;
-    open-path|restore-path)
+    project | projects) niri-pick-project ;;
+    zoxide | z) niri-pick-zoxide ;;
+    sessions | session | active) niri-sessions ;;
+    windows | window | win) niri-windows ;;
+    toggle | previous | back) niri-toggle-workspace ;;
+    clean | cleanup | orphans) niri-clean-orphans ;;
+    new)
       shift
-      [[ $# -gt 0 ]] || { usage >&2; exit 1; }
+      niri-new "${1:-term}"
+      ;;
+    slot)
+      shift
+      niri-slot "${1:-dev}"
+      ;;
+    open-path | restore-path)
+      shift
+      [[ $# -gt 0 ]] || {
+        usage >&2
+        exit 1
+      }
       niri-open-path "$1"
       ;;
-    list-projects) shift; list-projects "${1:-}" ;;
+    list-projects)
+      shift
+      list-projects "${1:-}"
+      ;;
     list-zoxide) list-zoxide ;;
     list-workspaces) niri-list-sessions ;;
     kill-workspace)
       shift
-      [[ $# -gt 0 ]] || { usage >&2; exit 1; }
+      [[ $# -gt 0 ]] || {
+        usage >&2
+        exit 1
+      }
       niri-kill-workspace "$1"
       ;;
-    --help|-h|help) usage ;;
-    *) usage >&2; exit 1 ;;
+    --help | -h | help) usage ;;
+    *)
+      usage >&2
+      exit 1
+      ;;
   esac
 }
 
 case "$(backend)" in
   niri) niri-dispatch "$@" ;;
   tmux) tmux-dispatch "$@" ;;
-  *) echo "dev-workspace: unknown backend: $(backend)" >&2; exit 1 ;;
+  *)
+    echo "dev-workspace: unknown backend: $(backend)" >&2
+    exit 1
+    ;;
 esac

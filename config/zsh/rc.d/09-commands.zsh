@@ -52,7 +52,7 @@ alias -s gz='gzip -l'
 alias -s {log,out}='tail -F'
 
 # Use `< file` to quickly view the contents of any text file.
-READNULLCMD=$PAGER  # Set the program to use for this.
+READNULLCMD=$PAGER # Set the program to use for this.
 
 autoload -Uz dev-clone dev-new dev-scratch
 

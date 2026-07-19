@@ -55,12 +55,12 @@ _migrate_legacy_dotfile() {
 
   case "$name" in
     mise)
-      [ -L "$target/config.toml" ] && \
-        [ "$(readlink -f "$target/config.toml")" = "$(realpath "$source/config.toml")" ] && \
+      [ -L "$target/config.toml" ] &&
+        [ "$(readlink -f "$target/config.toml")" = "$(realpath "$source/config.toml")" ] &&
         managed=1
       ;;
     zsh)
-      [ -L "$target/.zshrc" ] && [ "$(readlink "$target/.zshrc")" = "$root/.zshrc" ] && \
+      [ -L "$target/.zshrc" ] && [ "$(readlink "$target/.zshrc")" = "$root/.zshrc" ] &&
         managed=1
       ;;
   esac
@@ -105,7 +105,7 @@ apply-dotfiles() {
     [ -z "$component" ] || [ "$name" = "$component" ] || continue
 
     case "$name" in
-      ghostty|niri|noctalia|rofi|environment.d)
+      ghostty | niri | noctalia | rofi | environment.d)
         [ "${DOT_PROFILE:-}" = arch-desktop ] || continue
         ;;
     esac
@@ -124,7 +124,7 @@ apply-dotfiles() {
       source="$(readlink "$target")"
 
       case "$source" in
-        "$managed"/*|"$legacy"/*)
+        "$managed"/* | "$legacy"/*)
           [ -e "$target" ] && continue
           _config_log "Removing obsolete managed dotfile $(basename "$target")"
           rm -- "$target"
@@ -194,7 +194,7 @@ _generate_completion() {
 
   command -v "$1" >/dev/null 2>&1 || return 0
 
-  if "$@" > "$tmp" && [ -s "$tmp" ]; then
+  if "$@" >"$tmp" && [ -s "$tmp" ]; then
     chmod 644 "$tmp"
     mv -- "$tmp" "$target"
     _config_log "Generated completion $name"

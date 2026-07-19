@@ -147,6 +147,17 @@ without installing or updating anything:
 just completions
 ```
 
+### Install repository hooks
+
+```sh
+just hooks
+```
+
+Bootstrap installs the repository-local mise tools and activates the tracked
+pre-commit hook automatically. The hook checks the staged snapshot with
+`shfmt`, `bash -n`, and `zsh -n`; it rejects invalid commits without modifying
+the index. Run `just format` before committing when formatting fails.
+
 ### Update the machine
 
 ```sh

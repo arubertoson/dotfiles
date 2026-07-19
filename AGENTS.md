@@ -27,8 +27,5 @@
 - DO NOT use `else` statements unless necessary
 - AVOID `else` statements
 - PREFER single word variable names where possible
-- Indentation: 2 spaces or tabs consistently (follow existing file style)
-- Line length: Keep under 100 characters when possible
 - Imports: Source files with `source $file` (zsh) or explicit paths
-- No trailing whitespace
 - Use `local` in functions to avoid global pollution

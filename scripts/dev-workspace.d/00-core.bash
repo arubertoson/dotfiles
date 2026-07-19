@@ -97,7 +97,7 @@ session-name() {
   fi
 
   name="$(safe-name "$key")"
-  if (( ${#name} <= max )); then
+  if ((${#name} <= max)); then
     printf '%s\n' "$name"
     return
   fi
@@ -114,10 +114,13 @@ slot-meta() {
   local slot="${1:-dev}"
 
   case "$slot" in
-    1|dev|code|editor) printf 'dev\t1\n' ;;
-    2|term|terminal|shell) printf 'term\t2\n' ;;
-    3|pi|agent) printf 'agent\t3\n' ;;
-    4|serv|server) printf 'serv\t4\n' ;;
-    *) echo "dev-workspace: unknown slot: $slot" >&2; exit 2 ;;
+    1 | dev | code | editor) printf 'dev\t1\n' ;;
+    2 | term | terminal | shell) printf 'term\t2\n' ;;
+    3 | pi | agent) printf 'agent\t3\n' ;;
+    4 | serv | server) printf 'serv\t4\n' ;;
+    *)
+      echo "dev-workspace: unknown slot: $slot" >&2
+      exit 2
+      ;;
   esac
 }

@@ -11,7 +11,7 @@ ensure-github-key() {
 
   if [ -f "$key" ]; then
     if [ ! -f "$key.pub" ]; then
-      ssh-keygen -y -f "$key" > "$key.pub"
+      ssh-keygen -y -f "$key" >"$key.pub"
     fi
 
     chmod 600 "$key"
@@ -45,9 +45,9 @@ configure-github-host() {
       drop = ($1 == "Host" && NF == 2 && $2 == host)
     }
     !drop { print }
-  ' "$config" > "$tmp"
+  ' "$config" >"$tmp"
 
-  cat >> "$tmp" <<EOF
+  cat >>"$tmp" <<EOF
 Host $host
   HostName github.com
   User git

@@ -24,7 +24,7 @@ assert-link() {
   local source="$2"
 
   [ -L "$target" ] || fail "$target is not a symbolic link"
-  [ "$(readlink -f "$target")" = "$(realpath "$source")" ] || \
+  [ "$(readlink -f "$target")" = "$(realpath "$source")" ] ||
     fail "$target does not point to $source"
 }
 
@@ -54,7 +54,7 @@ run-apply() {
     DOT_DESKTOP="none" \
     DOT_PACKAGE_MANAGER="pacman" \
     SMOKE_FORBIDDEN_LOG="$FORBIDDEN_LOG" \
-    "$ROOT/bootstrap" apply > "$APPLY_LOG" 2>&1; then
+    "$ROOT/bootstrap" apply >"$APPLY_LOG" 2>&1; then
     return
   fi
 
@@ -66,7 +66,7 @@ mkdir -p "$STUBS" "$HOME_DIR/tmp" "$CONFIG"
 ln -s "$ROOT/dotfiles/zsh" "$CONFIG/zsh"
 ln -s "$ROOT/dotfiles/zsh/.zshenv" "$HOME_DIR/.zshenv"
 
-cat > "$STUBS/forbidden" <<'EOF'
+cat >"$STUBS/forbidden" <<'EOF'
 #!/bin/sh
 printf '%s\n' "$(basename "$0") $*" >> "${SMOKE_FORBIDDEN_LOG:?}"
 exit 97
@@ -97,7 +97,7 @@ assert-link "$CONFIG/zsh" "$ROOT/config/zsh"
 # Existing unmanaged paths must never be replaced without explicit adoption.
 rm -- "$CONFIG/git"
 mkdir -p "$CONFIG/git"
-printf 'keep\n' > "$CONFIG/git/unmanaged"
+printf 'keep\n' >"$CONFIG/git/unmanaged"
 run-apply
 [ ! -L "$CONFIG/git" ] || fail "an unmanaged config directory was replaced"
 [ "$(<"$CONFIG/git/unmanaged")" = keep ] || fail "an unmanaged file was changed"
@@ -114,8 +114,8 @@ run-apply
 
 run-apply
 
-[ ! -s "$FORBIDDEN_LOG" ] || \
-  fail "apply invoked a forbidden command: $(tr '\n' ' ' < "$FORBIDDEN_LOG")"
+[ ! -s "$FORBIDDEN_LOG" ] ||
+  fail "apply invoked a forbidden command: $(tr '\n' ' ' <"$FORBIDDEN_LOG")"
 
 if find "$HOME_DIR" -name '*.backup.*' -print -quit | grep -q .; then
   fail "apply unexpectedly created a backup"

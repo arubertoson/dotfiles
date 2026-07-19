@@ -8,13 +8,25 @@ _dot_detect_os() {
     # shellcheck disable=SC1091
     . /etc/os-release
     case "${ID:-}" in
-      arch|cachyos|endeavouros|manjaro) printf 'arch\n'; return ;;
-      ubuntu) printf 'ubuntu\n'; return ;;
+      arch | cachyos | endeavouros | manjaro)
+        printf 'arch\n'
+        return
+        ;;
+      ubuntu)
+        printf 'ubuntu\n'
+        return
+        ;;
     esac
 
     case " ${ID_LIKE:-} " in
-      *' arch '*) printf 'arch\n'; return ;;
-      *' debian '*) printf 'ubuntu\n'; return ;;
+      *' arch '*)
+        printf 'arch\n'
+        return
+        ;;
+      *' debian '*)
+        printf 'ubuntu\n'
+        return
+        ;;
     esac
   fi
 

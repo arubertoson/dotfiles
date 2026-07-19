@@ -16,8 +16,8 @@ _dot_package_lines() {
 }
 
 _dot_apt_update_once() {
-  if [ -f /tmp/.dotfiles-apt-updated ] && \
-    [ $(( $(date +%s) - $(stat -c %Y /tmp/.dotfiles-apt-updated 2>/dev/null || echo 0) )) -lt 3600 ]; then
+  if [ -f /tmp/.dotfiles-apt-updated ] &&
+    [ $(($(date +%s) - $(stat -c %Y /tmp/.dotfiles-apt-updated 2>/dev/null || echo 0))) -lt 3600 ]; then
     return
   fi
 

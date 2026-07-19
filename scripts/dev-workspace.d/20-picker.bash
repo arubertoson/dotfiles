@@ -65,7 +65,7 @@ pick-lines() {
 
       FZF_DEFAULT_OPTS="$FZF_OPTS" \
         fzf --ansi --no-hscroll --height="$FZF_HEIGHT" --layout=reverse --border \
-          --delimiter=$'\t' --with-nth=1,2 --prompt="$prompt" "${bind[@]}"
+        --delimiter=$'\t' --with-nth=1,2 --prompt="$prompt" "${bind[@]}"
       ;;
     *)
       echo "dev-workspace: unknown picker: $(picker)" >&2
@@ -88,7 +88,7 @@ pick-project-path() {
   local selection
 
   while true; do
-    result="$(list-projects | awk -F '\t' '{print $2 "\t" $3}' | \
+    result="$(list-projects | awk -F '\t' '{print $2 "\t" $3}' |
       pick-lines 'project >' custom-refresh)" || return 0
 
     if [[ "$(picker)" != rofi ]]; then
@@ -101,7 +101,10 @@ pick-project-path() {
 
     case "$code" in
       0) break ;;
-      10) write-project-cache; continue ;;
+      10)
+        write-project-cache
+        continue
+        ;;
       *) return 0 ;;
     esac
   done
@@ -113,7 +116,7 @@ pick-project-path() {
 pick-zoxide-path() {
   local selection
 
-  selection="$(list-zoxide | awk -F '\t' '{print $2 "\t" $3}' | \
+  selection="$(list-zoxide | awk -F '\t' '{print $2 "\t" $3}' |
     pick-lines 'zoxide >')" || return 0
   [[ -n "$selection" ]] || return 0
 
