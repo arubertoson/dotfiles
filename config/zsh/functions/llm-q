@@ -6,7 +6,7 @@
 # qc = continue previous saved quick-question session
 
 : "${PI_Q_PROVIDER:=openai-codex}"
-: "${PI_Q_MODEL:=gpt-5.4-mini}"
+: "${PI_Q_MODEL:=gpt-5.6-luna}"
 : "${PI_Q_THINKING:=off}"
 : "${PI_Q_SYSTEM:=Answer concisely, prefer clarity over cleverness and sacrifice grammar for concision.}"
 : "${PI_Q_SESSION_NAME:=quick question}"
