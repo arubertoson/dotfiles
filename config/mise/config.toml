@@ -3,39 +3,37 @@ VIRTUAL_ENV_DISABLE_PROMPT = "1"
 PIP_DISABLE_PIP_VERSION_CHECK = "1"
 
 [tools]
-# Runtimes (fallbacks; projects still pin their own)
-node   = "lts"
-python = "3.12.9"
-go     = "1.26.5"
-zig    = "0.15.1"
-rust   = "stable"
-odin   = "dev-2026-05"
-clang  = "21.1.1"
-
+# Floating selectors: update deliberately with `mise upgrade`.
 pi = "latest"
 codex = "latest"
-
 miller = "latest"
+jujutsu = "latest"
+bun = "latest"
+uv = "latest"
 
+# Rolling releases that are intentionally updated on their own cadence.
+node = "lts"
+rust = "stable"
+"github:neovim/neovim" = { version = "nightly", extract_all = "true", bin_path = "nvim-linux-x86_64/bin" }
+
+# Date-based or fixed versions; bump deliberately.
+python = "3.12.9"
+go = "1.27.1"
+zig = "0.15.1"
+odin = "dev-2026-05"
+clang = "21.1.1"
 process-compose = "1.94"
 tmux = "3.6a"
-
-jujutsu = "latest"
-
 yt-dlp = "2026.06.09"
-bun = "latest"
-
 hunk = "0.16.0"
-
 ast-grep = "0.43.0"
 
-# CLU utils
+# CLI utilities (pinned; bump deliberately).
 "github:XAMPPRocky/tokei"	 = "12.1.2"
 "github:jdx/usage"		 = "2.2.2"
 "github:chmln/sd"		 = "1.0.0"
 "github:charmbracelet/glow"	 = { version = "2.1.2", extract_all = "true" }
-"github:neovim/neovim"	         = { version = "nightly", extract_all= "true", bin_path = "nvim-linux-x86_64/bin" }
-"github:astral-sh/uv"            = { version = "0.11.17", extract_all = "true" }
+# "github:astral-sh/uv"            = { version = "0.11.17", extract_all = "true" }
 "github:BurntSushi/ripgrep"      = { version = "14.1.1", exe = "rg" }
 "github:sharkdp/fd"              = "10.3.0"
 "github:eza-community/eza"       = "0.23.4"

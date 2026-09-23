@@ -36,7 +36,6 @@ alias zmv='zmv -Mv'
 # of your aliases. It will figure them out automatically.
 
 alias clip="/mnt/c/Windows/System32/clip.exe"
-alias nvim="nvim-ready"
 
 # Set $PAGER if it hasn't been set yet. We need it below.
 # `:` is a builtin command that does nothing. We use it here to stop Zsh from
