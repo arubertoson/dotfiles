@@ -10,6 +10,9 @@ miller = "latest"
 jujutsu = "latest"
 bun = "latest"
 uv = "latest"
+amp = "0.0.1790150436-gfe2bc8"
+
+"aqua:gastownhall/beads" = "latest"
 
 # Rolling releases that are intentionally updated on their own cadence.
 node = "lts"
