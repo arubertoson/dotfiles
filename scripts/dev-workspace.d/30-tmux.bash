@@ -66,6 +66,7 @@ tmux-ensure-session() {
 
   session="$(session-name "$dir")"
   if tmux has-session -t "=$session" 2>/dev/null; then
+    tmux set-option -t "$session" @dev_workspace_path "$dir"
     tmux-restore-layout "$dir" "$session"
     printf '%s\n' "$session"
     return
@@ -75,6 +76,7 @@ tmux-ensure-session() {
   if [[ "$legacy" != "$session" ]] &&
     tmux has-session -t "=$legacy" 2>/dev/null &&
     tmux-session-matches-path "$legacy" "$dir"; then
+    tmux set-option -t "$legacy" @dev_workspace_path "$dir"
     tmux-restore-layout "$dir" "$legacy"
     printf '%s\n' "$legacy"
     return
@@ -84,6 +86,7 @@ tmux-ensure-session() {
   read -r -a names <<<"$layout"
   first="${names[0]}"
   tmux new-session -ds "$session" -n "$first" -c "$dir"
+  tmux set-option -t "$session" @dev_workspace_path "$dir"
 
   for name in "${names[@]:1}"; do
     tmux new-window -d -t "=$session" -n "$name" -c "$dir"
@@ -136,8 +139,34 @@ tmux-pick-zoxide() {
 }
 
 tmux-list-sessions() {
-  tmux list-sessions -F $'#{session_windows} windows\t#{session_attached} attached\t#S' \
-    2>/dev/null || true
+  local windows
+  local attached
+  local session
+  local recorded
+  local dir
+  local parent
+  local label
+  local repo
+  local owner
+
+  while IFS=$'\t' read -r windows attached session recorded dir; do
+    [[ -n "$session" ]] || continue
+    if [[ "$recorded" != 1 && ("$session" == main || "$dir" != "$DEV_ROOT"/*) ]]; then
+      printf '%s\t%s\t%s\t%s\n' "$windows" "$attached" "$session" "$session"
+      continue
+    fi
+
+    dir="${dir%/}"
+    parent="${dir%/*}"
+    label="${parent##*/} / ${dir##*/}"
+    if [[ "${parent##*/}" == .workspaces ]]; then
+      repo="${parent%/*}"
+      owner="${repo%/*}"
+      label="${owner##*/} / ${repo##*/} / ${dir##*/}"
+    fi
+
+    printf '%s\t%s\t%s\t%s\n' "$windows" "$attached" "$label" "$session"
+  done < <(tmux list-sessions -F $'#{session_windows} windows\t#{session_attached} attached\t#S\t#{?@dev_workspace_path,1,0}\t#{?@dev_workspace_path,#{@dev_workspace_path},#{pane_start_path}}' 2>/dev/null || true)
 }
 
 tmux-pick-session-rofi() {
@@ -169,14 +198,16 @@ tmux-pick-session-fzf() {
   local selection
   local session
   local command
+  local rows
 
-  command="tmux list-sessions -F '#{session_windows} windows	#{session_attached} attached	#S'"
-  selection="$(tmux-list-sessions | FZF_DEFAULT_OPTS="$FZF_OPTS" \
+  command="dev-workspace list-sessions"
+  rows="$(tmux-list-sessions)"
+  selection="$(FZF_DEFAULT_OPTS="$FZF_OPTS" \
     fzf --ansi --no-hscroll --height="$FZF_HEIGHT" --layout=reverse --border \
     --delimiter=$'\t' --with-nth=1,2,3 --prompt='session >' \
     --header='enter: switch · ctrl-d: kill · ctrl-r: refresh' \
-    --bind "ctrl-d:execute-silent(tmux kill-session -t {3})+reload($command)+clear-query" \
-    --bind "ctrl-r:reload($command)+clear-query")" || return 0
+    --bind "ctrl-d:execute-silent(tmux kill-session -t '={4}')+reload($command)+clear-query" \
+    --bind "ctrl-r:reload($command)+clear-query" <<<"$rows")" || return 0
 
   [[ -n "$selection" ]] || return 0
   session="${selection##*$'\t'}"
@@ -256,6 +287,7 @@ tmux-dispatch() {
     project | projects) tmux-pick-project ;;
     zoxide | z) tmux-pick-zoxide ;;
     sessions | session | active) tmux-pick-session ;;
+    list-sessions) tmux-list-sessions ;;
     windows | window | win) tmux-windows ;;
     open-path | restore-path)
       shift
