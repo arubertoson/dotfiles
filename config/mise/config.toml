@@ -30,6 +30,7 @@ tmux = "3.6a"
 yt-dlp = "2026.06.09"
 hunk = "0.16.0"
 ast-grep = "0.43.0"
+tree-sitter = "0.27.0"
 
 # CLI utilities (pinned; bump deliberately).
 "github:XAMPPRocky/tokei"	 = "12.1.2"
@@ -52,7 +53,7 @@ ast-grep = "0.43.0"
 "github:sharkdp/hyperfine"       = "1.19.0"
 "github:aristocratos/btop"       = "1.4.4"
 "github:ducaale/xh"              = "0.24.1"
-"github:tree-sitter/tree-sitter" = "v0.25.9"
+# "github:tree-sitter/tree-sitter" = "v0.25.9"
 
 [tasks]
 
