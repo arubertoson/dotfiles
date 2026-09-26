@@ -29,10 +29,11 @@ process-compose = "1.94"
 tmux = "3.6a"
 yt-dlp = "2026.06.09"
 hunk = "0.16.0"
-ast-grep = "0.43.0"
+ast-grep = "0.45.3"
 tree-sitter = "0.27.0"
 
 # CLI utilities (pinned; bump deliberately).
+"github:universal-ctags/ctags"   = "latest"
 "github:XAMPPRocky/tokei"	 = "12.1.2"
 "github:jdx/usage"		 = "2.2.2"
 "github:chmln/sd"		 = "1.0.0"
