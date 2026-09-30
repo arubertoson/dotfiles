@@ -221,6 +221,23 @@ supported profiles.
   canonical `dev`, `term`, `agent`, and `serv` windows directly.
 - Projects are discovered below `$XDG_DEV_HOME`/`~/dev` from Git and Jujutsu
   repositories.
+- The project picker sorts by project name, with a compact location column.
+  Fzf shows the selected full path in a footer; Enter opens, Ctrl+R refreshes,
+  and Esc cancels. It defaults to at most 20 rows including the UI;
+  `DEV_WORKSPACE_FZF_HEIGHT` overrides the height (e.g. `70%` or `100%`).
+- Alt+W (active workspaces/sessions) and Alt+Shift+W (windows) use the same
+  compact, two-column styling. Workspace rows show project names and locations
+  when a path is recorded; unrecorded and pinned workspaces remain selectable.
+  Window rows show a shortened title and app/command, with full details in the
+  fzf footer. Internal workspace names and window IDs are hidden from the list.
+  Enter switches/focuses; Ctrl+D kills a workspace/session and Ctrl+R refreshes
+  its list. Pinned niri workspaces remain protected from deletion.
+- `dev-workspace list-projects` retains its `type / label / path` TSV format;
+  `list-projects --compact [--refresh]` provides `name / location / path` TSV
+  for pickers, with padded names and an undisplayed canonical path.
+  `list-workspaces --compact` (niri) and `list-sessions --compact` (tmux)
+  provide `label / context / target / detail` TSV; their default output is
+  unchanged.
 - Ghostty skips automatic tmux unless `AUTO_TMUX=1` is explicitly set.
 
 Common commands:

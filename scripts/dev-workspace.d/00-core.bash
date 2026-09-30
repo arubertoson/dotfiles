@@ -48,6 +48,28 @@ pretty-path() {
   printf '%s\n' "$dir"
 }
 
+path-context() {
+  local parent="${1%/*}"
+
+  if [[ "$parent" == "$DEV_ROOT"/* ]]; then
+    parent="${parent#"$DEV_ROOT"/}"
+    printf '%s\n' "${parent#home/}"
+    return
+  fi
+
+  if [[ "$parent" == "$DEV_ROOT" ]]; then
+    printf '%s\n' '~dev'
+    return
+  fi
+
+  if [[ "$parent" == "$HOME" ]]; then
+    printf '%s\n' '~'
+    return
+  fi
+
+  pretty-path "$parent"
+}
+
 abs-path() {
   local dir="$1"
   local base="${2:-$DEV_ROOT}"

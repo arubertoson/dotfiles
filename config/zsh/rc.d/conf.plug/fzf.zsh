@@ -72,8 +72,8 @@ fzf-change-to-dev-project() {
     return 0
   }
 
-  command="${(q)picker} list-projects"
-  reload="${(q)picker} list-projects --refresh"
+  command="${(q)picker} list-projects --compact"
+  reload="${(q)picker} list-projects --compact --refresh"
   selection="$(fzf-pick-workspace-line 'project> ' "$command" "$reload")"
 
   if [[ -z "$selection" ]]; then

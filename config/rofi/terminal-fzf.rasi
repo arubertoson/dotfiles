@@ -28,7 +28,7 @@ window {
 mainbox {
     background-color: @bg;
     padding: 0;
-    children: [ inputbar, listview ];
+    children: [ inputbar, message, listview ];
 }
 
 inputbar {
@@ -61,7 +61,7 @@ listview {
 element {
     background-color: @bg;
     text-color: @fg;
-    padding: 0.25ch 1ch;
+    padding: 0.5ch 1ch;
 }
 
 element selected {

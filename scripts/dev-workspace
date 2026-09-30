@@ -147,9 +147,40 @@ niri-list-sessions() {
   require niri
   require jq
 
-  niri msg -j workspaces |
-    jq -r '.[] | select(.name != null) | .name' |
-    sort
+  if [[ "${1:-}" != --compact ]]; then
+    niri msg -j workspaces |
+      jq -r '.[] | select(.name != null) | .name' |
+      sort
+    return
+  fi
+
+  local ws
+  local focused
+  local file
+  local dir
+  local label
+  local context
+  local detail
+
+  while IFS=$'\t' read -r ws focused; do
+    [[ -n "$ws" ]] || continue
+    label="${ws#dev:}"
+    context=workspace
+    detail="$ws"
+    file="$(niri-state-file "$ws")"
+    if [[ "$ws" == dev:* && -f "$file" ]]; then
+      dir="$(<"$file")"
+      if [[ -n "$dir" ]]; then
+        label="${dir##*/}"
+        context="$(path-context "$dir")"
+        detail="$dir"
+      fi
+    fi
+    [[ "$focused" == true ]] && context+=' · current'
+    printf '%s\t%s\t%s\t%s\n' "$label" "$context" "$ws" "$detail"
+  done < <(niri msg -j workspaces |
+    jq -r '.[] | select(.name != null) | [.name, (.is_focused | tostring)] | @tsv') |
+    format-picker-rows
 }
 
 niri-pick-session-rofi() {
@@ -158,9 +189,10 @@ niri-pick-session-rofi() {
   local ws
 
   while true; do
-    result="$(niri-list-sessions | pick-lines 'workspace >' custom-delete)" || return 0
+    result="$(niri-list-sessions --compact | pick-lines 'workspace >' custom-delete)" || return 0
     code="${result%%$'\t'*}"
-    ws="${result#*$'\t'}"
+    [[ "$code" == 11 ]] && continue
+    ws="$(selected-target "${result#*$'\t'}")"
     [[ -n "$ws" ]] || return 0
 
     case "$code" in
@@ -181,16 +213,12 @@ niri-pick-session-fzf() {
   local selection
   local command
 
-  command="dev-workspace list-workspaces"
-  selection="$(niri-list-sessions | FZF_DEFAULT_OPTS="$FZF_OPTS" \
-    fzf --ansi --no-hscroll --height="$FZF_HEIGHT" --layout=reverse --border \
-    --prompt='workspace >' \
-    --header='enter: switch · ctrl-d: kill · ctrl-r: refresh' \
-    --bind "ctrl-d:execute-silent(dev-workspace kill-workspace {1})+reload($command)+clear-query" \
-    --bind "ctrl-r:reload($command)+clear-query")" || return 0
+  command="dev-workspace list-workspaces --compact"
+  selection="$(niri-list-sessions --compact |
+    pick-lines 'workspace >' custom-delete "$command" 'dev-workspace kill-workspace {3}')" || return 0
 
   [[ -n "$selection" ]] || return 0
-  niri-focus-workspace "$selection"
+  niri-focus-workspace "$(selected-target "$selection")"
 }
 
 niri-pick-session() {
@@ -410,14 +438,16 @@ niri-windows() {
     niri msg -j windows |
       jq -r --argjson ws "$ws_id" '
         .[] | select(.workspace_id == $ws) |
-          [(.title // "(untitled)"), (.app_id // "?"), (.id | tostring)] |
+          [(.title // "(untitled)"), (.app_id // "?"), (.id | tostring),
+           ((.title // "(untitled)") + " · " + (.app_id // "?"))] |
           @tsv
       ' |
-      pick-lines 'window >'
+      compact-window-rows |
+      pick-lines 'window >' windows
   )" || return 0
 
   [[ -n "$selection" ]] || return 0
-  id="${selection##*$'\t'}"
+  id="$(selected-target "$selection")"
   niri msg action focus-window --id "$id"
 }
 
@@ -447,10 +477,13 @@ niri-dispatch() {
       ;;
     list-projects)
       shift
-      list-projects "${1:-}"
+      list-projects "$@"
       ;;
     list-zoxide) list-zoxide ;;
-    list-workspaces) niri-list-sessions ;;
+    list-workspaces)
+      shift
+      niri-list-sessions "$@"
+      ;;
     kill-workspace)
       shift
       [[ $# -gt 0 ]] || {

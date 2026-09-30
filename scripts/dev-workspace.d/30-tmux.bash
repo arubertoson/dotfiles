@@ -148,9 +148,24 @@ tmux-list-sessions() {
   local label
   local repo
   local owner
+  local context
+  local detail
 
   while IFS=$'\t' read -r windows attached session recorded dir; do
     [[ -n "$session" ]] || continue
+    if [[ "${1:-}" == --compact ]]; then
+      label="$session"
+      context="$windows"
+      detail="${dir:-$session}"
+      if [[ -n "$dir" && ("$recorded" == 1 || ("$session" != main && "$dir" == "$DEV_ROOT"/*)) ]]; then
+        dir="${dir%/}"
+        label="${dir##*/}"
+        context="$(path-context "$dir") · $windows"
+      fi
+      [[ "$attached" != '0 attached' ]] && context+=' · attached'
+      printf '%s\t%s\t%s\t%s\n' "$label" "$context" "$session" "$detail"
+      continue
+    fi
     if [[ "$recorded" != 1 && ("$session" == main || "$dir" != "$DEV_ROOT"/*) ]]; then
       printf '%s\t%s\t%s\t%s\n' "$windows" "$attached" "$session" "$session"
       continue
@@ -175,9 +190,11 @@ tmux-pick-session-rofi() {
   local session
 
   while true; do
-    result="$(tmux-list-sessions | pick-lines 'session >' custom-delete)" || return 0
+    result="$(tmux-list-sessions --compact | format-picker-rows |
+      pick-lines 'session >' custom-delete)" || return 0
     code="${result%%$'\t'*}"
-    session="${result##*$'\t'}"
+    [[ "$code" == 11 ]] && continue
+    session="$(selected-target "${result#*$'\t'}")"
     [[ -n "$session" ]] || return 0
 
     case "$code" in
@@ -198,19 +215,13 @@ tmux-pick-session-fzf() {
   local selection
   local session
   local command
-  local rows
 
-  command="dev-workspace list-sessions"
-  rows="$(tmux-list-sessions)"
-  selection="$(FZF_DEFAULT_OPTS="$FZF_OPTS" \
-    fzf --ansi --no-hscroll --height="$FZF_HEIGHT" --layout=reverse --border \
-    --delimiter=$'\t' --with-nth=1,2,3 --prompt='session >' \
-    --header='enter: switch · ctrl-d: kill · ctrl-r: refresh' \
-    --bind "ctrl-d:execute-silent(tmux kill-session -t '={4}')+reload($command)+clear-query" \
-    --bind "ctrl-r:reload($command)+clear-query" <<<"$rows")" || return 0
+  command="dev-workspace list-sessions --compact"
+  selection="$(tmux-list-sessions --compact | format-picker-rows |
+    pick-lines 'session >' custom-delete "$command" 'tmux kill-session -t "="{3}')" || return 0
 
   [[ -n "$selection" ]] || return 0
-  session="${selection##*$'\t'}"
+  session="$(selected-target "$selection")"
   tmux-switch-session "$session"
 }
 
@@ -274,11 +285,11 @@ tmux-windows() {
   local selection
   local index
 
-  selection="$(tmux list-windows -F '#I\t#W\t#{pane_current_command}' |
-    pick-lines 'window >')" || return 0
+  selection="$(tmux list-windows -F $'#W\t#{pane_current_command}\t#I\t#W · #{pane_current_command} · #{pane_current_path}' |
+    compact-window-rows | pick-lines 'window >' windows)" || return 0
   [[ -n "$selection" ]] || return 0
 
-  index="${selection%%$'\t'*}"
+  index="$(selected-target "$selection")"
   tmux select-window -t "$index"
 }
 
@@ -287,7 +298,14 @@ tmux-dispatch() {
     project | projects) tmux-pick-project ;;
     zoxide | z) tmux-pick-zoxide ;;
     sessions | session | active) tmux-pick-session ;;
-    list-sessions) tmux-list-sessions ;;
+    list-sessions)
+      shift
+      if [[ "${1:-}" == --compact ]]; then
+        tmux-list-sessions --compact | format-picker-rows
+        return
+      fi
+      tmux-list-sessions
+      ;;
     windows | window | win) tmux-windows ;;
     open-path | restore-path)
       shift
@@ -311,7 +329,7 @@ tmux-dispatch() {
       ;;
     list-projects)
       shift
-      list-projects "${1:-}"
+      list-projects "$@"
       ;;
     list-zoxide) list-zoxide ;;
     --help | -h | help) usage ;;

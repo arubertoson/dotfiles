@@ -79,7 +79,24 @@ write-project-cache() {
   mv -- "$tmp" "$PROJECT_CACHE"
 }
 
+compact-projects() {
+  local type
+  local label
+  local dir
+
+  # Keep the canonical path as an undisplayed field for selection and preview.
+  while IFS=$'\t' read -r type label dir; do
+    printf '%s\t%s\t%s\n' "${dir##*/}" "$(path-context "$dir")" "$dir"
+  done | format-picker-rows
+}
+
 list-projects() {
+  if [[ "${1:-}" == --compact ]]; then
+    shift
+    list-projects "${1:-}" | compact-projects
+    return
+  fi
+
   local refresh="${1:-}"
 
   if [[ "$refresh" == --refresh || ! -f "$PROJECT_CACHE" ]]; then

@@ -26,46 +26,105 @@ list-zoxide() {
   done
 }
 
+format-picker-rows() {
+  local max="${1:-32}"
+
+  # Display columns may change; target and optional preview fields must not.
+  LC_ALL=C sort -f -t $'\t' -k1,1 -k2,2 | awk -F '\t' -v max="$max" '
+    { rows[NR] = $0; names[NR] = $1
+      if (length($1) > width) width = length($1) }
+    END {
+      if (width > max) width = max
+      for (i = 1; i <= NR; i++) {
+        printf "%-*s", width, names[i]
+        count = split(rows[i], fields, "\t")
+        for (j = 2; j <= count; j++) printf "\t%s", fields[j]
+        printf "\n"
+      }
+    }
+  '
+}
+
+compact-window-rows() {
+  local row
+  local title
+
+  while IFS= read -r row; do
+    title="${row%%$'\t'*}"
+    if ((${#title} > 40)); then
+      title="${title:0:39}…"
+    fi
+    printf '%s\t%s\n' "$title" "${row#*$'\t'}"
+  done | format-picker-rows 40
+}
+
 pick-lines() {
   local prompt="$1"
   local mode="${2:-normal}"
+  local reload="${3:-}"
+  local delete="${4:-}"
   local choice
   local code=0
   local bind=()
-  local reload
+  local options=()
+  local header
+  local title
+  local preview
+
+  case "$mode" in
+    custom-refresh)
+      header='enter: open · ctrl-r: refresh · esc: cancel'
+      title=' Projects '
+      preview="printf '%s\\n' {3}"
+      reload='dev-workspace list-projects --compact --refresh'
+      ;;
+    custom-delete)
+      header='enter: switch · ctrl-d: kill · ctrl-r: refresh · esc: cancel'
+      title=' Workspaces '
+      preview="printf '%s\\n' {4}"
+      ;;
+    windows)
+      header='enter: focus · esc: cancel'
+      title=' Windows '
+      preview="printf '%s\\n' {4}"
+      ;;
+  esac
 
   case "$(picker)" in
     rofi)
       require rofi
-      if [[ "$mode" == custom-delete ]]; then
-        choice="$(rofi -dmenu -i -matching fuzzy -sort -theme "$ROFI_THEME" \
-          -p "$prompt" -kb-custom-1 Control+d)"
-        code=$?
+      if [[ "$mode" != normal ]]; then
+        options=(-no-custom -display-columns '1,2' -column-separator '\t' -mesg "$header")
+      fi
+      case "$mode" in
+        custom-delete) bind=(-kb-custom-1 Control+d -kb-custom-2 Control+r) ;;
+        custom-refresh) bind=(-kb-custom-1 Control+r) ;;
+      esac
+      choice="$(rofi -dmenu -i -matching fuzzy -sort -theme "$ROFI_THEME" \
+        -p "$prompt" "${bind[@]}" "${options[@]}")" || code=$?
+      if [[ "$mode" == custom-delete || "$mode" == custom-refresh ]]; then
         printf '%s\t%s\n' "$code" "$choice"
         return
       fi
-
-      if [[ "$mode" == custom-refresh ]]; then
-        choice="$(rofi -dmenu -i -matching fuzzy -sort -theme "$ROFI_THEME" \
-          -p "$prompt" -kb-custom-1 Control+r)" || code=$?
-        printf '%s\t%s\n' "$code" "$choice"
-        return
-      fi
-
-      choice="$(rofi -dmenu -i -matching fuzzy -sort -theme "$ROFI_THEME" -p "$prompt")" || return 1
+      [[ "$code" == 0 ]] || return 1
       printf '%s\n' "$choice"
       ;;
     fzf)
       require fzf
-      if [[ "$mode" == custom-refresh ]]; then
-        reload="dev-workspace list-projects --refresh | "
-        reload+="awk -F '\t' '{print \$2 \"\t\" \$3}'"
-        bind=(--bind "ctrl-r:reload($reload)+clear-query")
+      if [[ "$mode" != normal ]]; then
+        options=(--height="${DEV_WORKSPACE_FZF_HEIGHT:-~20}"
+          --nth=1,2 --highlight-line --border-label="$title"
+          --header="$header" --preview="$preview" --preview-window='down,3,wrap')
       fi
-
+      if [[ -n "$reload" ]]; then
+        bind+=(--bind "ctrl-r:reload($reload)+clear-query")
+      fi
+      if [[ -n "$delete" ]]; then
+        bind+=(--bind "ctrl-d:execute-silent($delete)+reload($reload)+clear-query")
+      fi
       FZF_DEFAULT_OPTS="$FZF_OPTS" \
         fzf --ansi --no-hscroll --height="$FZF_HEIGHT" --layout=reverse --border \
-        --delimiter=$'\t' --with-nth=1,2 --prompt="$prompt" "${bind[@]}"
+        --delimiter=$'\t' --with-nth=1,2 --prompt="$prompt" "${bind[@]}" "${options[@]}"
       ;;
     *)
       echo "dev-workspace: unknown picker: $(picker)" >&2
@@ -74,12 +133,11 @@ pick-lines() {
   esac
 }
 
-selected-path() {
-  local selection="$1"
-  local rest
+selected-target() {
+  local rest="${1#*$'\t'}"
 
-  rest="${selection#*$'\t'}"
-  printf '%s\n' "${rest#*$'\t'}"
+  rest="${rest#*$'\t'}"
+  printf '%s\n' "${rest%%$'\t'*}"
 }
 
 pick-project-path() {
@@ -88,8 +146,8 @@ pick-project-path() {
   local selection
 
   while true; do
-    result="$(list-projects | awk -F '\t' '{print $2 "\t" $3}' |
-      pick-lines 'project >' custom-refresh)" || return 0
+    result="$(list-projects --compact |
+      pick-lines 'find project > ' custom-refresh)" || return 0
 
     if [[ "$(picker)" != rofi ]]; then
       selection="$result"
@@ -110,7 +168,7 @@ pick-project-path() {
   done
 
   [[ -n "$selection" ]] || return 0
-  selected-path "$selection"
+  selected-target "$selection"
 }
 
 pick-zoxide-path() {
@@ -120,5 +178,5 @@ pick-zoxide-path() {
     pick-lines 'zoxide >')" || return 0
   [[ -n "$selection" ]] || return 0
 
-  selected-path "$selection"
+  selected-target "$selection"
 }
