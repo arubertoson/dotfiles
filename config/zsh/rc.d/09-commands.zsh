@@ -16,6 +16,9 @@
 #   /   to go to the root dir
 setopt AUTO_CD
 
+# XXX: TEMP DUE TO COLOR QUERY
+alias pi='PI_TERMINAL_COLOR_QUERIES=0 /home/macke/dev/scratch/pi-terminal-color-fix/pi-test.sh'
+
 alias ..='cd ..'
 alias ...='cd ../..'
 alias ....='cd ../../..'
