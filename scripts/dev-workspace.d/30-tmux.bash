@@ -194,6 +194,7 @@ tmux-pick-session-rofi() {
       pick-lines 'session >' custom-delete)" || return 0
     code="${result%%$'\t'*}"
     [[ "$code" == 11 ]] && continue
+    [[ "$code" == 12 ]] && return 0
     session="$(selected-target "${result#*$'\t'}")"
     [[ -n "$session" ]] || return 0
 

@@ -146,3 +146,35 @@ slot-meta() {
       ;;
   esac
 }
+
+copy-to-clipboard() {
+  local path="$1"
+  local clipboard
+  local -a clipboards=()
+
+  if command -v clip.exe >/dev/null 2>&1; then
+    clipboards+=("$(command -v clip.exe)")
+  elif [[ -x /mnt/c/Windows/System32/clip.exe ]]; then
+    clipboards+=(/mnt/c/Windows/System32/clip.exe)
+  fi
+  command -v wl-copy >/dev/null 2>&1 && clipboards+=(wl-copy)
+  command -v xclip >/dev/null 2>&1 && clipboards+=(xclip)
+  command -v pbcopy >/dev/null 2>&1 && clipboards+=(pbcopy)
+
+  for clipboard in "${clipboards[@]}"; do
+    if [[ "$clipboard" == xclip ]]; then
+      if printf '%s' "$path" | xclip -selection clipboard; then
+        command -v notify-send >/dev/null 2>&1 && notify-send 'dev-workspace' 'Copied full path'
+        return 0
+      fi
+      continue
+    fi
+    if printf '%s' "$path" | "$clipboard"; then
+      command -v notify-send >/dev/null 2>&1 && notify-send 'dev-workspace' 'Copied full path'
+      return 0
+    fi
+  done
+
+  echo 'dev-workspace: no working clipboard utility found (clip.exe, wl-copy, xclip, or pbcopy)' >&2
+  return 1
+}

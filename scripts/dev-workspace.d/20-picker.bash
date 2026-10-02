@@ -70,16 +70,27 @@ pick-lines() {
   local header
   local title
   local preview
+  local path
+  local path_field
 
   case "$mode" in
     custom-refresh)
-      header='enter: open · ctrl-r: refresh · esc: cancel'
+      bind+=(--bind 'ctrl-y:execute-silent(dev-workspace yank-path {3})+abort')
+      ;;
+    custom-delete)
+      bind+=(--bind 'ctrl-y:execute-silent(dev-workspace yank-path {4})+abort')
+      ;;
+  esac
+
+  case "$mode" in
+    custom-refresh)
+      header='enter: open · ctrl-y: copy path · ctrl-r: refresh · esc: cancel'
       title=' Projects '
       preview="printf '%s\\n' {3}"
       reload='dev-workspace list-projects --compact --refresh'
       ;;
     custom-delete)
-      header='enter: switch · ctrl-d: kill · ctrl-r: refresh · esc: cancel'
+      header='enter: switch · ctrl-y: copy path · ctrl-d: kill · ctrl-r: refresh · esc: cancel'
       title=' Workspaces '
       preview="printf '%s\\n' {4}"
       ;;
@@ -97,12 +108,21 @@ pick-lines() {
         options=(-no-custom -display-columns '1,2' -column-separator '\t' -mesg "$header")
       fi
       case "$mode" in
-        custom-delete) bind=(-kb-custom-1 Control+d -kb-custom-2 Control+r) ;;
-        custom-refresh) bind=(-kb-custom-1 Control+r) ;;
+        custom-delete) bind=(-kb-custom-1 Control+d -kb-custom-2 Control+r -kb-custom-3 Control+y) ;;
+        custom-refresh) bind=(-kb-custom-1 Control+r -kb-custom-2 Control+y) ;;
       esac
       choice="$(rofi -dmenu -i -matching fuzzy -sort -theme "$ROFI_THEME" \
         -p "$prompt" "${bind[@]}" "${options[@]}")" || code=$?
       if [[ "$mode" == custom-delete || "$mode" == custom-refresh ]]; then
+        case "$mode:$code" in
+          custom-delete:12) path_field=4 ;;
+          custom-refresh:11) path_field=3 ;;
+          *) path_field= ;;
+        esac
+        if [[ -n "$path_field" && -n "$choice" ]]; then
+          path="$(awk -F '\t' -v field="$path_field" '{print $field}' <<<"$choice")"
+          dev-workspace yank-path "$path"
+        fi
         printf '%s\t%s\n' "$code" "$choice"
         return
       fi
@@ -131,6 +151,10 @@ pick-lines() {
       exit 1
       ;;
   esac
+}
+
+selected-path() {
+  printf '%s\n' "${1##*$'\t'}"
 }
 
 selected-target() {
@@ -163,6 +187,7 @@ pick-project-path() {
         write-project-cache
         continue
         ;;
+      11) return 0 ;;
       *) return 0 ;;
     esac
   done

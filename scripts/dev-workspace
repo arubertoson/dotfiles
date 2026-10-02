@@ -192,6 +192,7 @@ niri-pick-session-rofi() {
     result="$(niri-list-sessions --compact | pick-lines 'workspace >' custom-delete)" || return 0
     code="${result%%$'\t'*}"
     [[ "$code" == 11 ]] && continue
+    [[ "$code" == 12 ]] && return 0
     ws="$(selected-target "${result#*$'\t'}")"
     [[ -n "$ws" ]] || return 0
 
@@ -499,6 +500,16 @@ niri-dispatch() {
       ;;
   esac
 }
+
+if [[ "${1:-}" == yank-path ]]; then
+  shift
+  [[ $# -eq 1 ]] || {
+    usage >&2
+    exit 1
+  }
+  copy-to-clipboard "$1"
+  exit
+fi
 
 case "$(backend)" in
   niri) niri-dispatch "$@" ;;
