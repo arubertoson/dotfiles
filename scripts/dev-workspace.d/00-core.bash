@@ -1,7 +1,8 @@
 usage() {
   cat <<'USAGE'
-usage: dev-workspace [project|zoxide|sessions|windows|toggle|cleanup]
+usage: dev-workspace [project|zoxide|sessions|agents|windows|toggle|cleanup]
        dev-workspace [slot SLOT|new SLOT|open-path PATH]
+       dev-workspace [list-agents|agent-visit SERVER PANE]
 
 Environment:
   DEV_WORKSPACE_BACKEND    niri or tmux; auto-detected by default

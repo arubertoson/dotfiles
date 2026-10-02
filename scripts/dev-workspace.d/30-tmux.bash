@@ -150,24 +150,49 @@ tmux-list-sessions() {
   local owner
   local context
   local detail
+  local last_attached
+  local count_session
+  local running_count
+  local waiting_count
+  local ready_count
+  local idle_count
+  local badge
+  local -A badges=()
+  local -A summaries=()
+  if [[ "${1:-}" == --compact ]]; then
+    while IFS=$'\t' read -r count_session running_count waiting_count ready_count idle_count; do
+      [[ -n "$count_session" ]] || continue
+      badge='·'
+      ((running_count > 0)) && badge='⠹'
+      ((ready_count > 0)) && badge='◆'
+      ((waiting_count > 0)) && badge='?'
+      badges["$count_session"]="$badge"
+      summaries["$count_session"]="$running_count running · $waiting_count waiting · $ready_count ready · $idle_count idle"
+    done < <(agent-session-counts)
+  fi
 
-  while IFS=$'\t' read -r windows attached session recorded dir; do
+  while IFS=$'\t' read -r windows attached session recorded dir last_attached; do
     [[ -n "$session" ]] || continue
     if [[ "${1:-}" == --compact ]]; then
       label="$session"
-      context="$windows"
+      context=' '
       detail="${dir:-$session}"
       if [[ -n "$dir" && ("$recorded" == 1 || ("$session" != main && "$dir" == "$DEV_ROOT"/*)) ]]; then
         dir="${dir%/}"
         label="${dir##*/}"
-        context="$(path-context "$dir") · $windows"
+        context="$(path-context "$dir")"
+        parent="${dir%/*}"
+        if [[ "${parent##*/}" == .workspaces ]]; then
+          repo="${parent%/*}"
+          context="${repo##*/}/.workspaces"
+        fi
       fi
-      [[ "$attached" != '0 attached' ]] && context+=' · attached'
-      printf '%s\t%s\t%s\t%s\n' "$label" "$context" "$session" "$detail"
+      printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$label" "$context" "$session" "$detail" \
+        "${badges[$session]:- }" "$last_attached" "${summaries[$session]:-No agents}"
       continue
     fi
     if [[ "$recorded" != 1 && ("$session" == main || "$dir" != "$DEV_ROOT"/*) ]]; then
-      printf '%s\t%s\t%s\t%s\n' "$windows" "$attached" "$session" "$session"
+      printf '%s\t%s\t%s\t%s\t%s\n' "$windows" "$attached" "$session" "$session" "$last_attached"
       continue
     fi
 
@@ -180,8 +205,40 @@ tmux-list-sessions() {
       label="${owner##*/} / ${repo##*/} / ${dir##*/}"
     fi
 
-    printf '%s\t%s\t%s\t%s\n' "$windows" "$attached" "$label" "$session"
-  done < <(tmux list-sessions -F $'#{session_windows} windows\t#{session_attached} attached\t#S\t#{?@dev_workspace_path,1,0}\t#{?@dev_workspace_path,#{@dev_workspace_path},#{pane_start_path}}' 2>/dev/null || true)
+    printf '%s\t%s\t%s\t%s\t%s\n' "$windows" "$attached" "$label" "$session" "$last_attached"
+  done < <(tmux list-sessions -F $'#{session_windows} windows\t#{session_attached} attached\t#S\t#{?@dev_workspace_path,1,0}\t#{?@dev_workspace_path,#{@dev_workspace_path},#{pane_start_path}}\t#{session_last_attached}' 2>/dev/null || true) |
+    if [[ "${1:-}" == --compact ]]; then
+      LC_ALL=C sort -t $'\t' -k6,6nr -k1,1 | cut -f1-5,7
+    else
+      cut -f1-4
+    fi
+}
+
+tmux-session-rows() {
+  local frame='⠹'
+  local animate=false
+  local now
+  local frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+
+  if [[ "${1:-}" == --animate ]]; then
+    animate=true
+    now="$(date +%s%N)"
+    frame="${frames[$((now / 80000000 % ${#frames[@]}))]}"
+  fi
+
+  # Pad project names before adding the one-column glyph; byte length is not display width.
+  tmux-list-sessions --compact | format-picker-rows --preserve-order |
+    awk -F '\t' -v frame="$frame" -v animate="$animate" '{
+      badge = $5 == "⠹" ? frame : $5
+      if (animate == "true") {
+        esc=sprintf("%c", 27)
+        if ($5 == "?") badge = esc "[33;1m?" esc "[0m"
+        if ($5 == "◆") badge = esc "[36;1m◆" esc "[0m"
+        if ($5 == "⠹") badge = esc "[32;1m" frame esc "[0m"
+        if ($5 == "·") badge = esc "[90m·" esc "[0m"
+      }
+      printf "%s  %s\t%s\t%s\t%s\t%s · %s\n", badge, $1, $2, $3, $4, $4, $6
+    }'
 }
 
 tmux-pick-session-rofi() {
@@ -190,8 +247,7 @@ tmux-pick-session-rofi() {
   local session
 
   while true; do
-    result="$(tmux-list-sessions --compact | format-picker-rows |
-      pick-lines 'session >' custom-delete)" || return 0
+    result="$(tmux-session-rows | pick-lines 'session > ' tmux-sessions)" || return 0
     code="${result%%$'\t'*}"
     [[ "$code" == 11 ]] && continue
     [[ "$code" == 12 ]] && return 0
@@ -217,9 +273,9 @@ tmux-pick-session-fzf() {
   local session
   local command
 
-  command="dev-workspace list-sessions --compact"
-  selection="$(tmux-list-sessions --compact | format-picker-rows |
-    pick-lines 'session >' custom-delete "$command" 'tmux kill-session -t "="{3}')" || return 0
+  command="DEV_WORKSPACE_BACKEND=tmux dev-workspace list-sessions --compact --animate"
+  selection="$(tmux-session-rows --animate |
+    pick-lines 'session > ' tmux-sessions "$command" 'tmux kill-session -t "="{3}')" || return 0
 
   [[ -n "$selection" ]] || return 0
   session="$(selected-target "$selection")"
@@ -236,6 +292,31 @@ tmux-pick-session() {
       tmux-pick-session-fzf
       ;;
   esac
+}
+
+tmux-picker-popup() {
+  [[ $# == 3 ]] || return 1
+
+  local action="$1"
+  local pane="$2"
+  local client_width="$3"
+  local width
+
+  [[ "$pane" =~ ^%[0-9]+$ && "$client_width" =~ ^[1-9][0-9]*$ ]] || return 1
+  case "$action" in
+    project | sessions) ;;
+    *) return 1 ;;
+  esac
+
+  if ((client_width < 94)); then
+    width=$((client_width * 90 / 100))
+  elif ((client_width < 210)); then
+    width=84
+  else
+    width=$((client_width * 40 / 100))
+  fi
+
+  tmux display-popup -t "$pane" -B -E -w "$width" -h 70% "DEV_WORKSPACE_BACKEND=tmux DEV_WORKSPACE_FZF_HEIGHT=100% dev-workspace $action"
 }
 
 tmux-new() {
@@ -299,10 +380,21 @@ tmux-dispatch() {
     project | projects) tmux-pick-project ;;
     zoxide | z) tmux-pick-zoxide ;;
     sessions | session | active) tmux-pick-session ;;
+    picker-popup)
+      shift
+      tmux-picker-popup "$@"
+      ;;
+    agents | agent-overview) agent-overview ;;
+    list-agents) agent-list ;;
+    agent-visit)
+      shift
+      agent-visit "$@"
+      ;;
     list-sessions)
       shift
       if [[ "${1:-}" == --compact ]]; then
-        tmux-list-sessions --compact | format-picker-rows
+        shift
+        tmux-session-rows "${1:-}"
         return
       fi
       tmux-list-sessions
