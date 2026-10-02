@@ -136,6 +136,7 @@ pick-lines() {
 
   if [[ "$sessions" == true ]]; then
     title=' Sessions '
+    sort=(-no-sort)
     header=''
     preview=''
     footer='enter switch · ctrl-d kill · ctrl-y copy path · ctrl-r refresh · esc cancel'
@@ -192,7 +193,7 @@ pick-lines() {
       fi
       if [[ "$sessions" == true ]]; then
         options+=(--tiebreak=index --no-scrollbar --pointer='' --preview-window=hidden
-          --footer="$footer" --no-info)
+          --footer="$footer" --no-info --no-sort)
         # fzf owns this refresh chain and cancels it on exit; synchronous reloads
         # retain the visible list and cursor position while the next frame is read.
         [[ -n "$reload" ]] && bind+=(--bind "load:reload-sync(sleep 0.08; $reload)")

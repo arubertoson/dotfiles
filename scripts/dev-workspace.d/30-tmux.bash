@@ -138,6 +138,41 @@ tmux-pick-zoxide() {
   tmux-open-path "$dir"
 }
 
+tmux-group-session-rows() {
+  # Input is newest-first; the first member encountered determines group recency.
+  awk -F '\t' '
+    {
+      for (j = 1; j <= NF; j++) rows[NR, j] = $j
+      if ($8 != "" && !($8 in roots)) roots[$8] = NR
+    }
+    END {
+      for (i = 1; i <= NR; i++) {
+        path = rows[i, 8]
+        sub(/\/[^/]+$/, "", path)
+        if (path !~ /\/\.workspaces$/) continue
+        sub(/\/\.workspaces$/, "", path)
+        if (!(path in roots)) continue
+        root = roots[path]
+        parent[i] = root
+        children[root, ++count[root]] = i
+      }
+      for (i = 1; i <= NR; i++) {
+        root = parent[i] ? parent[i] : i
+        if (root in emitted) continue
+        emitted[root] = 1
+        emit(root, 0)
+        for (j = 1; j <= count[root]; j++)
+          emit(children[root, j], 1)
+      }
+    }
+    function emit(i, child) {
+      printf "%s%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+        child ? "    " : "", rows[i, 1], rows[i, 2], rows[i, 3],
+        rows[i, 4], rows[i, 5], rows[i, 7], child
+    }
+  '
+}
+
 tmux-list-sessions() {
   local windows
   local attached
@@ -150,6 +185,7 @@ tmux-list-sessions() {
   local owner
   local context
   local detail
+  local group
   local last_attached
   local count_session
   local running_count
@@ -177,8 +213,10 @@ tmux-list-sessions() {
       label="$session"
       context=' '
       detail="${dir:-$session}"
+      group=''
       if [[ -n "$dir" && ("$recorded" == 1 || ("$session" != main && "$dir" == "$DEV_ROOT"/*)) ]]; then
         dir="${dir%/}"
+        group="$dir"
         label="${dir##*/}"
         context="$(path-context "$dir")"
         parent="${dir%/*}"
@@ -187,8 +225,8 @@ tmux-list-sessions() {
           context="${repo##*/}/.workspaces"
         fi
       fi
-      printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$label" "$context" "$session" "$detail" \
-        "${badges[$session]:- }" "$last_attached" "${summaries[$session]:-No agents}"
+      printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$label" "$context" "$session" "$detail" \
+        "${badges[$session]:- }" "$last_attached" "${summaries[$session]:-No agents}" "$group"
       continue
     fi
     if [[ "$recorded" != 1 && ("$session" == main || "$dir" != "$DEV_ROOT"/*) ]]; then
@@ -208,7 +246,7 @@ tmux-list-sessions() {
     printf '%s\t%s\t%s\t%s\t%s\n' "$windows" "$attached" "$label" "$session" "$last_attached"
   done < <(tmux list-sessions -F $'#{session_windows} windows\t#{session_attached} attached\t#S\t#{?@dev_workspace_path,1,0}\t#{?@dev_workspace_path,#{@dev_workspace_path},#{pane_start_path}}\t#{session_last_attached}' 2>/dev/null || true) |
     if [[ "${1:-}" == --compact ]]; then
-      LC_ALL=C sort -t $'\t' -k6,6nr -k1,1 | cut -f1-5,7
+      LC_ALL=C sort -t $'\t' -k6,6nr -k1,1 | tmux-group-session-rows
     else
       cut -f1-4
     fi
@@ -237,7 +275,13 @@ tmux-session-rows() {
         if ($5 == "⠹") badge = esc "[32;1m" frame esc "[0m"
         if ($5 == "·") badge = esc "[90m·" esc "[0m"
       }
-      printf "%s  %s\t%s\t%s\t%s\t%s · %s\n", badge, $1, $2, $3, $4, $4, $6
+      prefix = badge "  "
+      name = $1
+      if ($7 == 1) {
+        prefix = "    " badge "  "
+        name = substr(name, 5)
+      }
+      printf "%s%s\t%s\t%s\t%s\t%s · %s\n", prefix, name, $2, $3, $4, $4, $6
     }'
 }
 

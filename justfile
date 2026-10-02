@@ -67,6 +67,7 @@ status:
 smoke:
   @./tests/apply-smoke.bash
   @./tests/workspace-picker.bash
+  @./tests/workspace-sessions.bash
 
 detect:
   @./bootstrap detect

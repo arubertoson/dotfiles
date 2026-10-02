@@ -232,6 +232,11 @@ supported profiles.
   fzf footer. Internal workspace names and window IDs are hidden from the list.
   Enter switches/focuses; Ctrl+D kills a workspace/session and Ctrl+R refreshes
   its list. Pinned niri workspaces remain protected from deletion.
+  Tmux sessions rooted at `<repo>/.workspaces/<name>` appear as tree children
+  of the repo session, grouped by full path rather than repo name. Groups are
+  ordered by their most recently used session, with recent children first.
+  Each row remains independently selectable; filtering may hide its parent.
+  Without a repo session, its workspaces remain standalone rows.
 - `dev-workspace list-projects` retains its `type / label / path` TSV format;
   `list-projects --compact [--refresh]` provides `name / location / path` TSV
   for pickers, with padded names and an undisplayed canonical path.
