@@ -50,7 +50,7 @@ tmux-agent-resize-layout() {
 
   local window="$1"
   local width
-  local min_width=100
+  local min_width=120
   local center
   local gutter
   local zoomed
@@ -65,7 +65,7 @@ tmux-agent-resize-layout() {
   mapfile -t gutters < <(tmux list-panes -t "$window" -F '#{pane_id} #{@dev_workspace_agent_gutter}' |
     awk '$2 == 1 { print $1 }')
 
-  # Keep the central pane near 60 columns or wider.
+  # Keep the central pane near 72 columns or wider.
   if ((width < min_width)); then
     for gutter in "${gutters[@]}"; do
       tmux kill-pane -t "$gutter"

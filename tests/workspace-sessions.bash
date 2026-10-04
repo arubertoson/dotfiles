@@ -165,7 +165,7 @@ tmux-agent-resize-layout "$agent_window"
 tmux resize-pane -Z -t "$agent_pane"
 tmux-agent-resize-layout "$agent_window"
 [[ "$(tmux list-panes -t agent-layout -F '#{pane_id}' | wc -l)" == 3 ]] || fail 'unzooming changed the pane layout'
-tmux resize-window -t agent-layout -x 80
+tmux resize-window -t agent-layout -x 110
 for _ in {1..30}; do
   pane_count="$(tmux list-panes -t agent-layout -F '#{pane_id}' | wc -l)"
   [[ "$pane_count" == 1 ]] && break
