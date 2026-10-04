@@ -165,13 +165,28 @@ tmux-agent-resize-layout "$agent_window"
 tmux resize-pane -Z -t "$agent_pane"
 tmux-agent-resize-layout "$agent_window"
 [[ "$(tmux list-panes -t agent-layout -F '#{pane_id}' | wc -l)" == 3 ]] || fail 'unzooming changed the pane layout'
+tmux resize-window -t agent-layout -x 120
+for _ in {1..30}; do
+  pane_count="$(tmux list-panes -t agent-layout -F '#{pane_id}' | wc -l)"
+  [[ "$pane_count" == 1 ]] && break
+  sleep 0.05
+done
+[[ "$pane_count" == 1 ]] || fail 'narrow window kept the gutters instead of disabling centering'
+[[ "$(tmux display-message -p -t agent-layout '#{pane_id}')" == "$agent_pane" ]] || fail 'disabling gutters replaced the agent process'
+tmux resize-window -t agent-layout -x 200
+for _ in {1..30}; do
+  pane_count="$(tmux list-panes -t agent-layout -F '#{pane_id}' | wc -l)"
+  [[ "$pane_count" == 3 ]] && break
+  sleep 0.05
+done
+[[ "$pane_count" == 3 ]] || fail 'wide window did not restore the gutters'
 tmux-agent-reset-layout "$agent_pane"
 [[ "$(tmux list-panes -t agent-layout -F '#{pane_id}' | wc -l)" == 1 ]] || fail 'agent layout reset did not remove gutters'
 [[ "$(tmux display-message -p -t agent-layout '#{pane_id}')" == "$agent_pane" ]] || fail 'agent layout reset removed the Pi pane'
 
 term_dir="$DEV_ROOT/term-layout"
 mkdir -p "$term_dir"
-tmux new-session -d -s term-layout -n dev -c "$term_dir" 'sleep 120'
+tmux new-session -d -s term-layout -x 200 -y 40 -n dev -c "$term_dir" 'sleep 120'
 tmux new-window -d -t term-layout -n term -c "$term_dir" 'sleep 120'
 term_pane="$(tmux display-message -p -t term-layout:term '#{pane_id}')"
 tmux-restore-layout "$term_dir" term-layout
