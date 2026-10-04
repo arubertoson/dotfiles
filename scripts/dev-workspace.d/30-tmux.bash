@@ -11,6 +11,62 @@ tmux-legacy-session-name() {
   printf '%s\n' "$name"
 }
 
+tmux-agent-center-layout() {
+  [[ $# == 1 && "$1" =~ ^%[0-9]+$ ]] || return 1
+
+  local center="$1"
+  local existing
+  local panes
+  local left
+  local right
+
+  existing="$(tmux display-message -p -t "$center" '#{@dev_workspace_agent_center}' 2>/dev/null || true)"
+  if [[ "$existing" == 1 ]]; then
+    tmux select-pane -t "$center"
+    return 0
+  fi
+
+  panes="$(tmux list-panes -t "$center" -F '#{pane_id}')"
+  [[ "$panes" == "$center" ]] || return 0
+
+  left="$(tmux split-window -h -b -l 20% -P -F '#{pane_id}' -t "$center" 'exec sleep infinity')"
+  tmux set-option -p -t "$left" @dev_workspace_agent_gutter 1
+  right="$(tmux split-window -h -l 25% -P -F '#{pane_id}' -t "$center" 'exec sleep infinity')"
+  tmux set-option -p -t "$right" @dev_workspace_agent_gutter 1
+  tmux set-option -p -t "$center" @dev_workspace_agent_center 1
+  tmux select-pane -t "$center"
+}
+
+tmux-agent-focus() {
+  [[ $# == 1 && "$1" =~ ^%[0-9]+$ ]] || return 0
+
+  local gutter
+  local center
+
+  gutter="$(tmux display-message -p -t "$1" '#{@dev_workspace_agent_gutter}' 2>/dev/null || true)"
+  [[ "$gutter" == 1 ]] || return 0
+  center="$(tmux list-panes -t "$1" -F '#{pane_id} #{@dev_workspace_agent_center}' |
+    awk '$2 == 1 { print $1; exit }')"
+  [[ "$center" =~ ^%[0-9]+$ ]] || return 0
+  tmux select-pane -t "$center"
+}
+
+tmux-agent-reset-layout() {
+  [[ $# == 1 && "$1" =~ ^%[0-9]+$ ]] || return 1
+
+  local center="$1"
+  local gutter
+  local panes
+
+  panes="$(tmux list-panes -t "$center" -F '#{pane_id} #{@dev_workspace_agent_gutter}')"
+  while read -r gutter marker; do
+    [[ "$marker" == 1 && "$gutter" =~ ^%[0-9]+$ ]] || continue
+    tmux kill-pane -t "$gutter"
+  done <<<"$panes"
+  tmux set-option -p -u -t "$center" @dev_workspace_agent_center 2>/dev/null || true
+  tmux select-pane -t "$center"
+}
+
 tmux-layout() {
   local dir="$1"
 
@@ -46,6 +102,12 @@ tmux-restore-layout() {
 
     tmux new-window -d -t "=$session" -n "$name" -c "$dir"
   done
+
+  local agent_panes
+  agent_panes="$(tmux list-panes -t "=$session:agent" -F '#{pane_id}' 2>/dev/null || true)"
+  if [[ -n "$agent_panes" && "$agent_panes" != *$'\n'* ]]; then
+    tmux-agent-center-layout "$agent_panes"
+  fi
 }
 
 tmux-session-matches-path() {
@@ -91,6 +153,8 @@ tmux-ensure-session() {
   for name in "${names[@]:1}"; do
     tmux new-window -d -t "=$session" -n "$name" -c "$dir"
   done
+
+  tmux-restore-layout "$dir" "$session"
 
   printf '%s\n' "$session"
 }
@@ -381,8 +445,10 @@ tmux-new() {
       tmux new-window -c '#{pane_current_path}' -n term
       ;;
     agent)
-      tmux new-window -c '#{pane_current_path}' -n agent \
-        'if command -v pi >/dev/null 2>&1; then pi; fi; exec ${SHELL:-sh}'
+      local pane
+      pane="$(tmux new-window -P -F '#{pane_id}' -c '#{pane_current_path}' -n agent \
+        'if command -v pi >/dev/null 2>&1; then pi; fi; exec ${SHELL:-sh}')"
+      tmux-agent-center-layout "$pane"
       ;;
     serv)
       tmux new-window -c '#{pane_current_path}' -n serv \
@@ -433,6 +499,14 @@ tmux-dispatch() {
     agent-visit)
       shift
       agent-visit "$@"
+      ;;
+    agent-focus)
+      shift
+      tmux-agent-focus "$@"
+      ;;
+    agent-layout-reset)
+      shift
+      tmux-agent-reset-layout "$@"
       ;;
     list-sessions)
       shift

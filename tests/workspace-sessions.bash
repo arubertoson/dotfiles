@@ -134,6 +134,22 @@ rows="$("$ROOT/scripts/dev-workspace" list-sessions --compact)"
   fail 'a missing repo still nests its children'
 [[ "$(wc -l <<<"$rows")" == 8 ]] || fail 'killing a repo also removed child rows'
 
+tmux new-session -d -s agent-layout -x 160 -y 40 'sleep 120'
+agent_pane="$(tmux display-message -p -t agent-layout '#{pane_id}')"
+tmux-agent-center-layout "$agent_pane"
+[[ "$(tmux list-panes -t agent-layout -F '#{pane_id}' | wc -l)" == 3 ]] || fail 'agent layout did not create two gutters'
+[[ "$(tmux display-message -p -t agent-layout '#{pane_id}')" == "$agent_pane" ]] || fail 'Pi pane identity changed'
+[[ "$(tmux display-message -p -t agent-layout '#{pane_current_command}')" == sleep ]] || fail 'Pi process was replaced'
+left_gutter="$(tmux list-panes -t agent-layout -F '#{pane_id} #{@dev_workspace_agent_gutter}' | awk '$2 == 1 { print $1; exit }')"
+[[ "$left_gutter" =~ ^%[0-9]+$ ]] || fail 'gutter marker is missing'
+tmux-agent-focus "$left_gutter"
+[[ "$(tmux display-message -p -t agent-layout '#{pane_id}')" == "$agent_pane" ]] || fail 'gutter focus was not redirected to Pi'
+tmux-agent-center-layout "$agent_pane"
+[[ "$(tmux list-panes -t agent-layout -F '#{pane_id}' | wc -l)" == 3 ]] || fail 'agent layout is not idempotent'
+tmux-agent-reset-layout "$agent_pane"
+[[ "$(tmux list-panes -t agent-layout -F '#{pane_id}' | wc -l)" == 1 ]] || fail 'agent layout reset did not remove gutters'
+[[ "$(tmux display-message -p -t agent-layout '#{pane_id}')" == "$agent_pane" ]] || fail 'agent layout reset removed the Pi pane'
+
 printf '[workspace-sessions] OK\n'
 if [[ -z "$REAL_FZF" ]]; then
   printf '[workspace-sessions] SKIP: fzf checks (fzf not installed)\n'
