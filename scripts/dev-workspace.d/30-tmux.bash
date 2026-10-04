@@ -51,6 +51,24 @@ tmux-agent-focus() {
   tmux select-pane -t "$center"
 }
 
+tmux-agent-resize-layout() {
+  [[ $# == 1 && "$1" =~ ^@[0-9]+$ ]] || return 0
+
+  local window="$1"
+  local zoomed
+  local -a gutters=()
+
+  zoomed="$(tmux display-message -p -t "$window" '#{window_zoomed_flag}')"
+  [[ "$zoomed" == 1 ]] && return 0
+
+  mapfile -t gutters < <(tmux list-panes -t "$window" -F '#{pane_id} #{@dev_workspace_agent_gutter}' |
+    awk '$2 == 1 { print $1 }')
+  ((${#gutters[@]} == 2)) || return 0
+
+  tmux resize-pane -t "${gutters[0]}" -x 20% 2>/dev/null || true
+  tmux resize-pane -t "${gutters[1]}" -x 20% 2>/dev/null || true
+}
+
 tmux-agent-reset-layout() {
   [[ $# == 1 && "$1" =~ ^%[0-9]+$ ]] || return 1
 
@@ -508,6 +526,10 @@ tmux-dispatch() {
     agent-focus)
       shift
       tmux-agent-focus "$@"
+      ;;
+    agent-layout-resize)
+      shift
+      tmux-agent-resize-layout "$@"
       ;;
     agent-layout-reset)
       shift
