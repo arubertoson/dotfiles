@@ -150,6 +150,17 @@ tmux-agent-reset-layout "$agent_pane"
 [[ "$(tmux list-panes -t agent-layout -F '#{pane_id}' | wc -l)" == 1 ]] || fail 'agent layout reset did not remove gutters'
 [[ "$(tmux display-message -p -t agent-layout '#{pane_id}')" == "$agent_pane" ]] || fail 'agent layout reset removed the Pi pane'
 
+term_dir="$DEV_ROOT/term-layout"
+mkdir -p "$term_dir"
+tmux new-session -d -s term-layout -n dev -c "$term_dir" 'sleep 120'
+tmux new-window -d -t term-layout -n term -c "$term_dir" 'sleep 120'
+term_pane="$(tmux display-message -p -t term-layout:term '#{pane_id}')"
+tmux-restore-layout "$term_dir" term-layout
+[[ "$(tmux list-panes -t term-layout:term -F '#{pane_id}' | wc -l)" == 3 ]] || fail 'term window did not get centered gutters'
+[[ "$(tmux display-message -p -t "$term_pane" '#{pane_current_command}')" == sleep ]] || fail 'term process was replaced'
+tmux-agent-reset-layout "$term_pane"
+[[ "$(tmux list-panes -t term-layout:term -F '#{pane_id}' | wc -l)" == 1 ]] || fail 'term layout reset did not remove gutters'
+
 printf '[workspace-sessions] OK\n'
 if [[ -z "$REAL_FZF" ]]; then
   printf '[workspace-sessions] SKIP: fzf checks (fzf not installed)\n'

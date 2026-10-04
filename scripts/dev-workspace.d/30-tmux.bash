@@ -103,11 +103,14 @@ tmux-restore-layout() {
     tmux new-window -d -t "=$session" -n "$name" -c "$dir"
   done
 
-  local agent_panes
-  agent_panes="$(tmux list-panes -t "=$session:agent" -F '#{pane_id}' 2>/dev/null || true)"
-  if [[ -n "$agent_panes" && "$agent_panes" != *$'\n'* ]]; then
-    tmux-agent-center-layout "$agent_panes"
-  fi
+  local window
+  local center_pane
+  for window in agent term; do
+    center_pane="$(tmux list-panes -t "=$session:$window" -F '#{pane_id}' 2>/dev/null || true)"
+    if [[ -n "$center_pane" && "$center_pane" != *$'\n'* ]]; then
+      tmux-agent-center-layout "$center_pane"
+    fi
+  done
 }
 
 tmux-session-matches-path() {
@@ -442,7 +445,9 @@ tmux-new() {
         '${EDITOR:-nvim} .; exec ${SHELL:-sh}'
       ;;
     term)
-      tmux new-window -c '#{pane_current_path}' -n term
+      local pane
+      pane="$(tmux new-window -P -F '#{pane_id}' -c '#{pane_current_path}' -n term)"
+      tmux-agent-center-layout "$pane"
       ;;
     agent)
       local pane
