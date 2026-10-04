@@ -51,6 +51,8 @@ tmux-agent-resize-layout() {
   local window="$1"
   local width
   local min_width=120
+  local gutter_width
+  local max_gutter_width
   local center
   local gutter
   local zoomed
@@ -65,8 +67,14 @@ tmux-agent-resize-layout() {
   mapfile -t gutters < <(tmux list-panes -t "$window" -F '#{pane_id} #{@dev_workspace_agent_gutter}' |
     awk '$2 == 1 { print $1 }')
 
-  # Keep the central pane near 72 columns or wider.
-  if ((width < min_width)); then
+  gutter_width=0
+  if ((width >= min_width)); then
+    gutter_width=$(((width - min_width - 2) / 2))
+    max_gutter_width=$((width / 5))
+    ((gutter_width > max_gutter_width)) && gutter_width="$max_gutter_width"
+  fi
+
+  if ((gutter_width < 1)); then
     for gutter in "${gutters[@]}"; do
       tmux kill-pane -t "$gutter"
     done
@@ -79,16 +87,16 @@ tmux-agent-resize-layout() {
       tmux kill-pane -t "$gutter"
     done
     gutters=()
-    gutters+=("$(tmux split-window -h -b -l 20% -P -F '#{pane_id}' -t "$center" 'exec sleep infinity')")
+    gutters+=("$(tmux split-window -h -b -l "$gutter_width" -P -F '#{pane_id}' -t "$center" 'exec sleep infinity')")
     tmux set-option -p -t "${gutters[0]}" @dev_workspace_agent_gutter 1
-    gutters+=("$(tmux split-window -h -l 25% -P -F '#{pane_id}' -t "$center" 'exec sleep infinity')")
+    gutters+=("$(tmux split-window -h -l "$gutter_width" -P -F '#{pane_id}' -t "$center" 'exec sleep infinity')")
     tmux set-option -p -t "${gutters[1]}" @dev_workspace_agent_gutter 1
     tmux select-pane -t "$center"
     return 0
   fi
 
-  tmux resize-pane -t "${gutters[0]}" -x 20% 2>/dev/null || true
-  tmux resize-pane -t "${gutters[1]}" -x 20% 2>/dev/null || true
+  tmux resize-pane -t "${gutters[0]}" -x "$gutter_width" 2>/dev/null || true
+  tmux resize-pane -t "${gutters[1]}" -x "$gutter_width" 2>/dev/null || true
 }
 
 tmux-agent-reset-layout() {

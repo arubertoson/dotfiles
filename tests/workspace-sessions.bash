@@ -154,10 +154,10 @@ for _ in {1..30}; do
   right_gutter="$(tmux list-panes -t agent-layout -F '#{pane_id} #{@dev_workspace_agent_gutter}' |
     awk -v left="$left_gutter" '$2 == 1 && $1 != left { print $1; exit }')"
   right_width="$(tmux display-message -p -t "$right_gutter" '#{pane_width}')"
-  [[ "$left_width" == 40 && "$right_width" == 40 ]] && break
+  [[ "$left_width" == 39 && "$right_width" == 39 ]] && break
   sleep 0.05
 done
-[[ "$left_width" == 40 && "$right_width" == 40 ]] || fail 'window resize did not rebalance gutters'
+[[ "$left_width" == 39 && "$right_width" == 39 ]] || fail 'window resize did not rebalance gutters'
 agent_window="$(tmux display-message -p -t "$agent_pane" '#{window_id}')"
 tmux resize-pane -Z -t "$agent_pane"
 tmux-agent-resize-layout "$agent_window"
@@ -165,7 +165,15 @@ tmux-agent-resize-layout "$agent_window"
 tmux resize-pane -Z -t "$agent_pane"
 tmux-agent-resize-layout "$agent_window"
 [[ "$(tmux list-panes -t agent-layout -F '#{pane_id}' | wc -l)" == 3 ]] || fail 'unzooming changed the pane layout'
-tmux resize-window -t agent-layout -x 110
+tmux resize-window -t agent-layout -x 150
+for _ in {1..30}; do
+  left_width="$(tmux display-message -p -t "$left_gutter" '#{pane_width}')"
+  right_width="$(tmux display-message -p -t "$right_gutter" '#{pane_width}')"
+  [[ "$left_width" == 14 && "$right_width" == 14 ]] && break
+  sleep 0.05
+done
+[[ "$left_width" == 14 && "$right_width" == 14 ]] || fail 'gutters did not shrink gradually with window width'
+tmux resize-window -t agent-layout -x 120
 for _ in {1..30}; do
   pane_count="$(tmux list-panes -t agent-layout -F '#{pane_id}' | wc -l)"
   [[ "$pane_count" == 1 ]] && break
@@ -180,6 +188,11 @@ for _ in {1..30}; do
   sleep 0.05
 done
 [[ "$pane_count" == 3 ]] || fail 'wide window did not restore the gutters'
+left_gutter="$(tmux list-panes -t agent-layout -F '#{pane_id} #{@dev_workspace_agent_gutter}' | awk '$2 == 1 { print $1; exit }')"
+right_gutter="$(tmux list-panes -t agent-layout -F '#{pane_id} #{@dev_workspace_agent_gutter}' |
+  awk -v left="$left_gutter" '$2 == 1 && $1 != left { print $1; exit }')"
+[[ "$(tmux display-message -p -t "$left_gutter" '#{pane_width}')" == 39 ]] || fail 'restored gutters have the wrong size'
+[[ "$(tmux display-message -p -t "$right_gutter" '#{pane_width}')" == 39 ]] || fail 'restored gutters have the wrong size'
 tmux-agent-reset-layout "$agent_pane"
 [[ "$(tmux list-panes -t agent-layout -F '#{pane_id}' | wc -l)" == 1 ]] || fail 'agent layout reset did not remove gutters'
 [[ "$(tmux display-message -p -t agent-layout '#{pane_id}')" == "$agent_pane" ]] || fail 'agent layout reset removed the Pi pane'
