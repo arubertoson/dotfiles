@@ -107,10 +107,59 @@ EOF
   export PICKER_QUERY=''
   filtered="$(printf '%s\n' "$rows" | pick-lines 'session > ' tmux-sessions)"
   [[ "$(cut -f3 <<<"$filtered")" == "$expected" ]] || fail 'fzf reordered the tree'
-  grep -Fxq -- '--no-sort' "$PICKER_ARGS" || fail 'fzf does not preserve tree order'
+  grep -Fxq -- '--sort' "$PICKER_ARGS" || fail 'fzf does not rank search matches'
   export PICKER_QUERY='document analysis'
   filtered="$(printf '%s\n' "$rows" | pick-lines 'session > ' tmux-sessions)"
   [[ "$(selected-target "$filtered")" == document-alpha ]] || fail 'fzf cannot select a child without its parent'
+
+  # Filter mode does not run event bindings; exercise query changes in a real TTY.
+  cat >"$TEMP/bin/fzf" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+exec "$REAL_FZF" "$@" --bind 'result:execute-silent(printf "%s\n" {3} > "$PICKER_FOCUS")'
+EOF
+  cat >"$TEMP/run-picker" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+source "$1/scripts/dev-workspace" help >/dev/null
+pick-lines 'session > ' tmux-sessions 'cat "$PICKER_ROWS"' <"$PICKER_ROWS" >"$PICKER_RESULT"
+EOF
+  export PICKER_ROWS="$TEMP/picker-rows"
+  export PICKER_FOCUS="$TEMP/picker-focus"
+  export PICKER_RESULT="$TEMP/picker-result"
+  printf '%s\n' \
+    $'   feat-session-analyze\tgithub.com/arubertoson/silicon-housekeeping/.workspace\tfeature\t/tmp/feature' \
+    $'   main\t \tmain\t/tmp/main' >"$PICKER_ROWS"
+  window="$(tmux new-window -d -P -F '#{window_id}' -t '=main' -n picker \
+    -e DEV_WORKSPACE_PICKER=fzf -e PICKER_ROWS="$PICKER_ROWS" \
+    -e PICKER_FOCUS="$PICKER_FOCUS" -e PICKER_RESULT="$PICKER_RESULT" \
+    "bash '$TEMP/run-picker' '$ROOT'")"
+
+  wait-picker-target() {
+    local target="$1"
+    for _ in {1..100}; do
+      if [[ -f "$PICKER_FOCUS" ]] && grep -Fxq "$target" "$PICKER_FOCUS"; then
+        return
+      fi
+      sleep 0.05
+    done
+    tmux capture-pane -p -t "$window" >&2 || true
+    fail "fzf did not focus $target"
+  }
+
+  wait-picker-target feature
+  tmux send-keys -t "$window" -l main
+  wait-picker-target main
+  tmux send-keys -t "$window" C-u
+  wait-picker-target feature
+  tmux send-keys -t "$window" -l main
+  wait-picker-target main
+  tmux send-keys -t "$window" Enter
+  for _ in {1..100}; do
+    [[ -s "$PICKER_RESULT" ]] && break
+    sleep 0.05
+  done
+  [[ "$(cut -f3 "$PICKER_RESULT")" == main ]] || fail 'ranked selection lost its session target'
 fi
 
 cat >"$TEMP/bin/rofi" <<'EOF'

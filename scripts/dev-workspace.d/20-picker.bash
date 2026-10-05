@@ -192,8 +192,9 @@ pick-lines() {
         fi
       fi
       if [[ "$sessions" == true ]]; then
+        # Empty queries retain input order; searching ranks matches with stable ties.
         options+=(--tiebreak=index --no-scrollbar --pointer='' --preview-window=hidden
-          --footer="$footer" --no-info --no-sort)
+          --footer="$footer" --no-info --sort)
         # fzf owns this refresh chain and cancels it on exit; synchronous reloads
         # retain the visible list and cursor position while the next frame is read.
         [[ -n "$reload" ]] && bind+=(--bind "load:reload-sync(sleep 0.08; $reload)")
