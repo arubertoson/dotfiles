@@ -99,6 +99,21 @@ tmux-agent-resize-layout() {
   tmux resize-pane -t "${gutters[1]}" -x "$gutter_width" 2>/dev/null || true
 }
 
+tmux-agent-center-window() {
+  [[ $# == 2 && "$1" =~ ^@[0-9]+$ && "$2" =~ ^\$[0-9]+$ ]] || return 0
+
+  local window="$1"
+  local session="$2"
+  local path
+  local panes
+
+  path="$(tmux show-options -qv -t "$session" @dev_workspace_path 2>/dev/null || true)"
+  [[ -n "$path" ]] || return 0
+  panes="$(tmux list-panes -t "$window" -F '#{pane_id}')"
+  [[ "$panes" == %* && "$panes" != *$'\n'* ]] || return 0
+  tmux-agent-center-layout "$panes"
+}
+
 tmux-agent-reset-layout() {
   [[ $# == 1 && "$1" =~ ^%[0-9]+$ ]] || return 1
 
@@ -153,11 +168,12 @@ tmux-restore-layout() {
 
   local window
   local center_pane
-  for window in agent term; do
-    center_pane="$(tmux list-panes -t "=$session:$window" -F '#{pane_id}' 2>/dev/null || true)"
-    if [[ -n "$center_pane" && "$center_pane" != *$'\n'* ]]; then
-      tmux-agent-center-layout "$center_pane"
-    fi
+  local -a windows=()
+  mapfile -t windows < <(tmux list-windows -t "=$session" -F '#{window_id}')
+  for window in "${windows[@]}"; do
+    center_pane="$(tmux list-panes -t "$window" -F '#{pane_id}')"
+    [[ "$center_pane" == %* && "$center_pane" != *$'\n'* ]] || continue
+    tmux-agent-center-layout "$center_pane"
   done
 }
 
@@ -560,6 +576,10 @@ tmux-dispatch() {
     agent-layout-resize)
       shift
       tmux-agent-resize-layout "$@"
+      ;;
+    agent-center-window)
+      shift
+      tmux-agent-center-window "$@"
       ;;
     agent-layout-reset)
       shift
