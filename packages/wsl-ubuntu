@@ -1,1 +1,3 @@
 # Extra packages for WSL Ubuntu.
+podman
+podman-compose
