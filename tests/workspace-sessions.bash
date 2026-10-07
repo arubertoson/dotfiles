@@ -88,6 +88,10 @@ selection="$(awk -F '\t' '$3 == "document-alpha"' <<<"$rows")"
 [[ "$(awk -F '\t' '$3 == "document-alpha" {print $2}' <<<"$rows")" == job-search/.workspaces ]] ||
   fail 'the workspace context is missing'
 [[ "$(awk -F '\t' '{print NF}' <<<"$rows" | sort -u)" == 5 ]] || fail 'compact public TSV fields changed'
+create-session stale-workspace "$DEV_ROOT/home/github.com/alpha/.workspaces/removed"
+rm -rf -- "$DEV_ROOT/home/github.com/alpha/.workspaces/removed"
+rows="$($ROOT/scripts/dev-workspace list-sessions --compact)"
+[[ "$rows" != *$'\tstale-workspace\t'* ]] || fail 'a removed workspace still appears in the refreshed session list'
 
 legacy="$("$ROOT/scripts/dev-workspace" list-sessions)"
 [[ "$(awk -F '\t' '$4 == "scraper-alpha" {print $3}' <<<"$legacy")" == 'alpha / job-search / impl-scraper-service' ]] ||

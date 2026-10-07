@@ -340,6 +340,9 @@ tmux-list-sessions() {
 
   while IFS=$'\t' read -r windows attached session recorded dir last_attached; do
     [[ -n "$session" ]] || continue
+    if [[ "$recorded" == 1 || "$dir" == "$DEV_ROOT"/* ]]; then
+      [[ -d "$dir" ]] || continue
+    fi
     if [[ "${1:-}" == --compact ]]; then
       label="$session"
       context=' '
