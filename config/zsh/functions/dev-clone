@@ -3,7 +3,7 @@
 dev-clone() {
   emulate -L zsh
 
-  local location="home"
+  local location="library"
   local remote
 
   if [[ $# -eq 1 ]]; then
@@ -57,14 +57,6 @@ dev-clone() {
     mkdir -p "${dest:h}" || return 1
     git clone "$clone" "$dest" || return 1
     echo "cloned repo to: $dest"
-  fi
-
-  local workspace
-  workspace="$(command -v dev-workspace 2>/dev/null || true)"
-
-  if [[ -n "$workspace" ]]; then
-    "$workspace" open-path "$dest"
-    return
   fi
 
   cd "$dest"
