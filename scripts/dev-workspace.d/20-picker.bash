@@ -192,18 +192,23 @@ pick-lines() {
         fi
       fi
       if [[ "$sessions" == true ]]; then
-        # Empty queries retain input order; searching ranks matches with stable ties.
         options+=(--tiebreak=index --no-scrollbar --pointer='' --preview-window=hidden
-          --footer="$footer" --no-info --sort)
-        # fzf owns this refresh chain and cancels it on exit; synchronous reloads
-        # retain the visible list and cursor position while the next frame is read.
-        [[ -n "$reload" ]] && bind+=(--bind "load:reload-sync(sleep 0.08; $reload)")
+          --footer="$footer" --no-info --no-sort --nth=1)
+        if [[ -n "$reload" ]]; then
+          # Filtering outside fzf preserves workspace ancestors and descendants.
+          # Keep the query on every animation refresh, including zero-result searches.
+          options+=(--disabled)
+          bind+=(--bind "load:reload-sync(sleep 0.08; $reload --query {q})"
+            --bind "change:reload-sync($reload --query {q})+first"
+            --bind "ctrl-r:reload-sync($reload --query {q})")
+          [[ -z "$delete" ]] || bind+=(--bind "ctrl-d:execute-silent($delete)+clear-query+reload-sync($reload --query '')")
+        fi
       fi
       [[ "$mode" == agents ]] && options+=(--tiebreak=index)
-      if [[ -n "$reload" ]]; then
+      if [[ -n "$reload" && "$sessions" != true ]]; then
         bind+=(--bind "ctrl-r:reload($reload)+clear-query")
       fi
-      if [[ -n "$delete" ]]; then
+      if [[ -n "$delete" && "$sessions" != true ]]; then
         bind+=(--bind "ctrl-d:execute-silent($delete)+reload($reload)+clear-query")
       fi
       FZF_DEFAULT_OPTS="$FZF_OPTS" \

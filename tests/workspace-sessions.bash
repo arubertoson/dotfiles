@@ -111,23 +111,34 @@ EOF
   export PICKER_QUERY=''
   filtered="$(printf '%s\n' "$rows" | pick-lines 'session > ' tmux-sessions)"
   [[ "$(cut -f3 <<<"$filtered")" == "$expected" ]] || fail 'fzf reordered the tree'
-  grep -Fxq -- '--sort' "$PICKER_ARGS" || fail 'fzf does not rank search matches'
+  grep -Fxq -- '--no-sort' "$PICKER_ARGS" || fail 'fzf does not preserve workspace groups when searching'
   export PICKER_QUERY='document analysis'
   filtered="$(printf '%s\n' "$rows" | pick-lines 'session > ' tmux-sessions)"
   [[ "$(selected-target "$filtered")" == document-alpha ]] || fail 'fzf cannot select a child without its parent'
 
-  # Filter mode does not run event bindings; exercise query changes in a real TTY.
+  # Filter mode does not run event bindings; exercise external query reloads in a real TTY.
   cat >"$TEMP/bin/fzf" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 exec "$REAL_FZF" "$@" --bind 'result:execute-silent(printf "%s\n" {3} > "$PICKER_FOCUS")'
 EOF
+  cat >"$TEMP/reload-picker" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+query="${2:-}"
+if [[ -z "$query" ]]; then
+  cat "$PICKER_ROWS"
+  exit
+fi
+FZF_DEFAULT_OPTS='' "$REAL_FZF" --filter="$query" --delimiter=$'\t' --nth=1 --no-sort <"$PICKER_ROWS" || [[ $? == 1 ]]
+EOF
   cat >"$TEMP/run-picker" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 source "$1/scripts/dev-workspace" help >/dev/null
-pick-lines 'session > ' tmux-sessions 'cat "$PICKER_ROWS"' <"$PICKER_ROWS" >"$PICKER_RESULT"
+pick-lines 'session > ' tmux-sessions 'bash "$PICKER_RELOAD"' <"$PICKER_ROWS" >"$PICKER_RESULT"
 EOF
+  export PICKER_RELOAD="$TEMP/reload-picker"
   export PICKER_ROWS="$TEMP/picker-rows"
   export PICKER_FOCUS="$TEMP/picker-focus"
   export PICKER_RESULT="$TEMP/picker-result"
@@ -135,7 +146,7 @@ EOF
     $'   feat-session-analyze\tgithub.com/arubertoson/silicon-housekeeping/.workspace\tfeature\t/tmp/feature' \
     $'   main\t \tmain\t/tmp/main' >"$PICKER_ROWS"
   window="$(tmux new-window -d -P -F '#{window_id}' -t '=main' -n picker \
-    -e DEV_WORKSPACE_PICKER=fzf -e PICKER_ROWS="$PICKER_ROWS" \
+    -e DEV_WORKSPACE_PICKER=fzf -e PICKER_ROWS="$PICKER_ROWS" -e PICKER_RELOAD="$PICKER_RELOAD" \
     -e PICKER_FOCUS="$PICKER_FOCUS" -e PICKER_RESULT="$PICKER_RESULT" \
     "bash '$TEMP/run-picker' '$ROOT'")"
 
@@ -163,7 +174,7 @@ EOF
     [[ -s "$PICKER_RESULT" ]] && break
     sleep 0.05
   done
-  [[ "$(cut -f3 "$PICKER_RESULT")" == main ]] || fail 'ranked selection lost its session target'
+  [[ "$(cut -f3 "$PICKER_RESULT")" == main ]] || fail 'query reload lost its session target'
 fi
 
 cat >"$TEMP/bin/rofi" <<'EOF'

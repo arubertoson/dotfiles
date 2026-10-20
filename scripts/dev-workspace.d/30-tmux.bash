@@ -323,17 +323,10 @@ tmux-list-sessions() {
   local waiting_count
   local ready_count
   local idle_count
-  local badge
-  local -A badges=()
   local -A summaries=()
   if [[ "${1:-}" == --compact ]]; then
     while IFS=$'\t' read -r count_session running_count waiting_count ready_count idle_count; do
       [[ -n "$count_session" ]] || continue
-      badge='·'
-      ((running_count > 0)) && badge='⠹'
-      ((ready_count > 0)) && badge='◆'
-      ((waiting_count > 0)) && badge='?'
-      badges["$count_session"]="$badge"
       summaries["$count_session"]="$running_count running · $waiting_count waiting · $ready_count ready · $idle_count idle"
     done < <(agent-session-counts)
   fi
@@ -360,7 +353,7 @@ tmux-list-sessions() {
         fi
       fi
       printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$label" "$context" "$session" "$detail" \
-        "${badges[$session]:- }" "$last_attached" "${summaries[$session]:-No agents}" "$group"
+        ' ' "$last_attached" "${summaries[$session]:-No agents}" "$group"
       continue
     fi
     if [[ "$recorded" != 1 && ("$session" == main || "$dir" != "$DEV_ROOT"/*) ]]; then
@@ -386,20 +379,149 @@ tmux-list-sessions() {
     fi
 }
 
+tmux-session-agent-rows() {
+  local label
+  local context
+  local pane
+  local project
+  local session
+  local row
+  local depth
+  local badge
+  local -A agents=()
+
+  while IFS=$'\t' read -r label context pane project; do
+    [[ "$pane" =~ ^%[0-9]+$ ]] || continue
+    session="$(tmux display-message -p -t "$pane" '#{session_name}' 2>/dev/null || true)"
+    [[ -n "$session" ]] || continue
+    case "${context%% *}" in
+      running) badge='⠹' ;;
+      waiting) badge='?' ;;
+      ready) badge='◆' ;;
+      idle) badge='·' ;;
+      *) continue ;;
+    esac
+    agents["$session"]+="$(printf '%s\t%s\tpane:%s\t%s\t%s\t%s' \
+      "$label" "$context" "$pane" "$project" "$badge" "$context")"$'\n'
+  done < <(agent-list)
+
+  while IFS= read -r row; do
+    printf '%s\n' "$row"
+    session="$(selected-target "$row")"
+    [[ -n "${agents[$session]:-}" ]] || continue
+    depth="${row##*$'\t'}"
+    depth=$((depth + 1))
+    while IFS= read -r row; do
+      [[ -n "$row" ]] || continue
+      printf '%*s%s\t%s\n' "$((depth * 4))" '' "$row" "$depth"
+    done <<<"${agents[$session]}"
+  done
+}
+
+tmux-session-target-switch() {
+  local target="$1"
+  local pane
+  local session
+
+  if [[ "$target" == pane:* ]]; then
+    pane="${target#pane:}"
+    [[ "$pane" =~ ^%[0-9]+$ ]] || return 0
+    session="$(tmux display-message -p -t "$pane" '#{session_name}' 2>/dev/null || true)"
+    [[ -n "$session" ]] || return 0
+    # Select before attaching: attach-session blocks when invoked outside tmux.
+    tmux select-window -t "$pane" || return 0
+    tmux select-pane -t "$pane" || return 0
+    tmux-switch-session "$session"
+    return
+  fi
+  tmux-switch-session "$target"
+}
+
+tmux-session-target-delete() {
+  [[ $# == 1 && -n "$1" ]] || return 1
+  # Pane targets are navigation-only, including stale or malformed ones.
+  [[ "$1" != pane:* ]] || return 0
+  tmux kill-session -t "=$1"
+}
+
+tmux-filter-session-rows() {
+  local query="${1:-}"
+  local rows
+  local matches
+  local code=0
+
+  rows="$(awk '{print}')"
+  if [[ -z "$query" ]]; then
+    printf '%s\n' "$rows"
+    return
+  fi
+
+  # Only names and workspace identity are searchable; status is display-only.
+  matches="$(printf '%s\n' "$rows" | awk -F '\t' '{
+    name = $1
+    sub(/^ +/, "", name)
+    sub(/ +$/, "", name)
+    if ($3 !~ /^pane:/) name = name " " $2
+    print name "\t" $3
+  }' | FZF_DEFAULT_OPTS='' FZF_DEFAULT_OPTS_FILE=/dev/null \
+    fzf --filter="$query" --delimiter=$'\t' --nth=1 | cut -f2)" || code=$?
+  [[ "$code" == 0 || "$code" == 1 ]] || return "$code"
+
+  printf '%s\n' "$rows" | DEV_WORKSPACE_MATCHES="$matches" awk -F '\t' '
+    BEGIN {
+      count = split(ENVIRON["DEV_WORKSPACE_MATCHES"], targets, "\n")
+      for (i = 1; i <= count; i++) matched[targets[i]] = i
+    }
+    {
+      rows[NR] = $0
+      depth = $7 + 0
+      parent[NR] = depth > 0 ? stack[depth - 1] : 0
+      root[NR] = depth > 0 ? root[parent[NR]] : NR
+      stack[depth] = NR
+      direct[NR] = $3 in matched
+      included[NR] = direct[NR] || included[parent[NR]]
+      if (included[NR]) {
+        keep[NR] = 1
+        for (i = parent[NR]; i > 0; i = parent[i]) keep[i] = 1
+      }
+      if (direct[NR] && (!root_rank[root[NR]] || matched[$3] < root_rank[root[NR]]))
+        root_rank[root[NR]] = matched[$3]
+    }
+    END {
+      for (rank = 1; rank <= count; rank++) {
+        for (i = 1; i <= NR; i++)
+          if (keep[i] && root_rank[root[i]] == rank) print rows[i]
+      }
+    }
+  '
+}
+
 tmux-session-rows() {
   local frame='⠹'
   local animate=false
+  local query=''
   local now
   local frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
 
-  if [[ "${1:-}" == --animate ]]; then
-    animate=true
+  while (($# > 0)); do
+    case "$1" in
+      --animate) animate=true ;;
+      --query)
+        [[ $# -ge 2 ]] || return 1
+        query="$2"
+        shift
+        ;;
+      *) return 1 ;;
+    esac
+    shift
+  done
+  if [[ "$animate" == true ]]; then
     now="$(date +%s%N)"
     frame="${frames[$((now / 80000000 % ${#frames[@]}))]}"
   fi
 
   # Pad project names before adding the one-column glyph; byte length is not display width.
-  tmux-list-sessions --compact | format-picker-rows --preserve-order |
+  tmux-list-sessions --compact | tmux-session-agent-rows | tmux-filter-session-rows "$query" | format-picker-rows --preserve-order |
     awk -F '\t' -v frame="$frame" -v animate="$animate" '{
       badge = $5 == "⠹" ? frame : $5
       if (animate == "true") {
@@ -411,9 +533,9 @@ tmux-session-rows() {
       }
       prefix = badge "  "
       name = $1
-      if ($7 == 1) {
-        prefix = "    " badge "  "
-        name = substr(name, 5)
+      if ($7 > 0) {
+        prefix = sprintf("%*s", $7 * 4, "") badge "  "
+        name = substr(name, $7 * 4 + 1)
       }
       printf "%s%s\t%s\t%s\t%s\t%s · %s\n", prefix, name, $2, $3, $4, $4, $6
     }'
@@ -434,11 +556,11 @@ tmux-pick-session-rofi() {
 
     case "$code" in
       0)
-        tmux-switch-session "$session"
+        tmux-session-target-switch "$session"
         return
         ;;
       10)
-        tmux kill-session -t "=$session"
+        tmux-session-target-delete "$session"
         continue
         ;;
       *) return 0 ;;
@@ -453,11 +575,11 @@ tmux-pick-session-fzf() {
 
   command="DEV_WORKSPACE_BACKEND=tmux dev-workspace list-sessions --compact --animate"
   selection="$(tmux-session-rows --animate |
-    pick-lines 'session > ' tmux-sessions "$command" 'tmux kill-session -t "="{3}')" || return 0
+    pick-lines 'session > ' tmux-sessions "$command" 'DEV_WORKSPACE_BACKEND=tmux dev-workspace session-target-delete {3}')" || return 0
 
   [[ -n "$selection" ]] || return 0
   session="$(selected-target "$selection")"
-  tmux-switch-session "$session"
+  tmux-session-target-switch "$session"
 }
 
 tmux-pick-session() {
@@ -562,6 +684,10 @@ tmux-dispatch() {
     project | projects) tmux-pick-project ;;
     zoxide | z) tmux-pick-zoxide ;;
     sessions | session | active) tmux-pick-session ;;
+    session-target-delete)
+      shift
+      tmux-session-target-delete "$@"
+      ;;
     picker-popup)
       shift
       tmux-picker-popup "$@"
@@ -592,7 +718,7 @@ tmux-dispatch() {
       shift
       if [[ "${1:-}" == --compact ]]; then
         shift
-        tmux-session-rows "${1:-}"
+        tmux-session-rows "$@"
         return
       fi
       tmux-list-sessions

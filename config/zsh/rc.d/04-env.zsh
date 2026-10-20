@@ -26,7 +26,7 @@ fpath=(
 # Activate mise before completion initialization so its shims and generated
 # completion functions are visible when Znap runs compinit.
 if command -v mise >/dev/null 2>&1; then
-  eval "$(mise activate zsh --shims)"
+  eval "$(mise activate zsh)"
 fi
 
 source $ZDOTDIR/functions/llm-q

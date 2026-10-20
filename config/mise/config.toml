@@ -21,7 +21,7 @@ rust = "stable"
 
 # Date-based or fixed versions; bump deliberately.
 python = "3.12.9"
-go = "1.27.1"
+go = "1.27.2"
 zig = "0.15.1"
 odin = "dev-2026-05"
 clang = "21.1.1"

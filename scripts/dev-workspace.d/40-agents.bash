@@ -71,6 +71,14 @@ agent-display-status() {
   printf '%s\n' "$status"
 }
 
+agent-tmux-server() {
+  if [[ -n "${TMUX:-}" ]]; then
+    printf '%s\n' "${TMUX%,*}"
+    return
+  fi
+  tmux display-message -p '#{socket_path},#{pid}' 2>/dev/null || true
+}
+
 agent-session-counts() {
   require tmux
 
@@ -82,9 +90,9 @@ agent-session-counts() {
   local pid
   local status
   local -a fields
-  local current_server="${TMUX:-}"
+  local current_server
 
-  current_server="${current_server%,*}"
+  current_server="$(agent-tmux-server)"
   dir="$(agent-status-dir)"
   [[ -d "$dir" ]] || return 0
 
@@ -140,9 +148,9 @@ agent-list() {
   local priority
   local -a fields
   local now
-  local current_server="${TMUX:-}"
+  local current_server
 
-  current_server="${current_server%,*}"
+  current_server="$(agent-tmux-server)"
   dir="$(agent-status-dir)"
   [[ -d "$dir" ]] || return 0
   now="$(date +%s)"

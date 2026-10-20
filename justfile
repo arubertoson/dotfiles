@@ -66,8 +66,10 @@ status:
 
 smoke:
   @./tests/apply-smoke.bash
+  @./tests/tmux-ssh-environment.bash
   @./tests/workspace-picker.bash
   @./tests/workspace-sessions.bash
+  @./tests/workspace-agents.bash
 
 detect:
   @./bootstrap detect
