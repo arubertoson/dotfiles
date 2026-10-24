@@ -27,6 +27,9 @@ export XDG_DEV_HOME="${HOME}/dev"
 
 export EDITOR="nvim"
 
+# A locally started Pi can later be reached through tmux over SSH.
+export PI_CLIPBOARD_OSC52=1
+
 # Ensure that XDG directories exists and can be used by different
 # applications.
 directories=(
