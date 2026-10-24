@@ -20,7 +20,7 @@ rust = "stable"
 "github:neovim/neovim" = { version = "nightly", extract_all = "true", bin_path = "nvim-linux-x86_64/bin" }
 
 # Date-based or fixed versions; bump deliberately.
-python = "3.12.9"
+python = "3.15.1"
 go = "1.27.2"
 zig = "0.15.1"
 odin = "dev-2026-05"
