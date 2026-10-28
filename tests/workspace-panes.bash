@@ -66,8 +66,8 @@ key() {
   tmux source-file - <<<"run-shell ${binding#*run-shell }"
 }
 assert-grid() {
-  [[ "$(value "$C" pane_left)" == 0 && "$(value "$D" pane_left)" == 0 ]] || fail 'new stack is not on the left'
-  [[ "$(value "$A" pane_left)" == "$(value "$B" pane_left)" && "$(value "$A" pane_left)" -gt 0 ]] || fail 'original stack is not on the right'
+  [[ "$(value "$A" pane_left)" == 0 && "$(value "$B" pane_left)" == 0 ]] || fail 'original stack is not on the left'
+  [[ "$(value "$C" pane_left)" == "$(value "$D" pane_left)" && "$(value "$C" pane_left)" -gt 0 ]] || fail 'new stack is not on the right'
   [[ "$(value "$C" pane_top)" == 0 && "$(value "$A" pane_top)" == 0 ]] || fail 'top row is incorrect'
   [[ "$(value "$B" pane_top)" == "$(($(value "$A" pane_height) + 1))" ]] || fail 'stack has incorrect vertical geometry'
   [[ "$(value "$D" pane_top)" == "$(value "$B" pane_top)" && "$(value "$D" pane_top)" -gt 0 ]] || fail 'bottom row is incorrect'
@@ -116,8 +116,8 @@ assert-focus "$B"
 workspace pane-add "$B"
 C="$(value "$WINDOW" pane_id)"
 assert-layout 3 0
-[[ "$(value "$C" pane_left)" == 0 && "$(value "$C" pane_height)" == 40 ]] || fail 'third pane is not full-height on the left'
-[[ "$(value "$A" pane_left)" -gt 0 && "$(value "$B" pane_top)" -gt 0 ]] || fail 'existing stack was not preserved'
+[[ "$(value "$C" pane_left)" -gt 0 && "$(value "$C" pane_top)" == 0 && "$(value "$C" pane_height)" == 40 ]] || fail 'third pane is not full-height on the right'
+[[ "$(value "$A" pane_left)" == 0 && "$(value "$B" pane_left)" == 0 && "$(value "$B" pane_top)" -gt 0 ]] || fail 'existing stack was not preserved on the left'
 workspace pane-add "$C"
 D="$(value "$WINDOW" pane_id)"
 assert-layout 4 0
@@ -137,20 +137,20 @@ key M-p
 assert-focus "$D"
 assert-layout 4 0
 assert-focus "$D"
-workspace pane-navigate "$D" right
+workspace pane-navigate "$D" left
 assert-focus "$B"
 workspace pane-navigate "$B" up
 assert-focus "$A"
-workspace pane-navigate "$A" left
+workspace pane-navigate "$A" right
 assert-focus "$C"
 
 tmux resize-window -t "$WINDOW" -x 160 -y 32
 for _ in {1..100}; do
-  [[ "$(value "$C" pane_width)" == 79 && "$(value "$A" pane_width)" == 80 ]] && break
+  [[ "$(value "$A" pane_width)" == 79 && "$(value "$C" pane_width)" == 80 ]] && break
   sleep 0.02
 done
 assert-grid
-[[ "$(value "$C" pane_width)" == 79 ]] || fail 'grid did not resize'
+[[ "$(value "$A" pane_width)" == 79 && "$(value "$C" pane_width)" == 80 ]] || fail 'grid did not resize'
 
 # Native shell exit, not our remove command, must rebalance too.
 tmux send-keys -t "$D" 'exit' Enter

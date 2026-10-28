@@ -76,11 +76,11 @@ tmux-pane-render() {
     3 | 4)
       size=$(((width - 1) / 2))
       offset=$((size + 1))
-      left="$(tmux-pane-cell "$size" "$height" 0 0 "${panes[2]}")"
+      left="$(tmux-pane-stack "$size" "$height" 0 0 "${panes[0]}" "${panes[1]}")"
+      right="$(tmux-pane-cell "$((width - offset))" "$height" "$offset" 0 "${panes[2]}")"
       if (("${#panes[@]}" == 4)); then
-        left="$(tmux-pane-stack "$size" "$height" 0 0 "${panes[2]}" "${panes[3]}")"
+        right="$(tmux-pane-stack "$((width - offset))" "$height" "$offset" 0 "${panes[2]}" "${panes[3]}")"
       fi
-      right="$(tmux-pane-stack "$((width - offset))" "$height" "$offset" 0 "${panes[0]}" "${panes[1]}")"
       body="${width}x${height},0,0{${left},${right}}"
       ;;
   esac
@@ -91,9 +91,6 @@ tmux-pane-render() {
   fi
 
   order=("${panes[@]}")
-  if (("${#panes[@]}" >= 3)); then
-    order=("${panes[@]:2}" "${panes[@]:0:2}")
-  fi
   if ((gutter > 0)); then
     order=("${gutters[0]}" "${order[@]}" "${gutters[1]}")
   fi
