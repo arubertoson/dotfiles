@@ -125,6 +125,10 @@ filtered="$("$ROOT/scripts/dev-workspace" list-sessions --compact --query 'Runni
 [[ "$(cut -f3 <<<"$filtered")" == "$(printf 'repo\npane:%s' "$RUNNING_PANE")" ]] || fail 'agent search lost its workspace or included unrelated agents'
 filtered="$("$ROOT/scripts/dev-workspace" list-sessions --compact --query feature)"
 [[ "$(cut -f3 <<<"$filtered")" == "$(printf 'repo\nfeature\npane:%s' "$CHILD_PANE")" ]] || fail 'nested workspace search lost ancestors or included sibling agents'
+filtered="$("$ROOT/scripts/dev-workspace" list-sessions --compact --query featureShared)"
+[[ "$(cut -f3 <<<"$filtered")" == "$(printf 'repo\nfeature\npane:%s' "$CHILD_PANE")" ]] || fail 'combined workspace and agent search matched a sibling or lost the owning pane'
+filtered="$("$ROOT/scripts/dev-workspace" list-sessions --compact --query repoRunning)"
+[[ "$(cut -f3 <<<"$filtered")" == "$(printf 'repo\npane:%s' "$RUNNING_PANE")" ]] || fail 'combined repository and agent search lost the owning pane'
 filtered="$("$ROOT/scripts/dev-workspace" list-sessions --compact --query repo)"
 [[ "$(cut -f3 <<<"$filtered")" == "$(cut -f3 <<<"$rows" | grep -vx main)" ]] || fail 'workspace search does not preserve its full subtree and order'
 # A prefix match must outrank a more recent fuzzy-only candidate.
@@ -238,7 +242,15 @@ EOF
   cat >"$TEMP/bin/fzf" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-exec "$REAL_FZF" "$@" --bind 'result:execute-silent(printf "%s\n" {3} > "$PICKER_FOCUS"; printf "%s\n" "$FZF_MATCH_COUNT" > "$PICKER_COUNT")' \
+observe='execute-silent(printf "%s\n" {3} > "$PICKER_FOCUS"; printf "%s\n" "$FZF_MATCH_COUNT" > "$PICKER_COUNT")'
+args=()
+for arg in "$@"; do
+  if [[ "$arg" == result:* || "$arg" == focus:* ]]; then
+    arg+="+$observe"
+  fi
+  args+=("$arg")
+done
+exec "$REAL_FZF" "${args[@]}" \
   --bind 'zero:execute-silent(printf "0\n" > "$PICKER_COUNT")'
 EOF
   export PICKER_FOCUS="$TEMP/fzf-focus"
@@ -263,8 +275,7 @@ EOF
   wait-for 'fzf did not recover from an empty result' focus-is repo
   tmux send-keys -t "$window" -l 'Renamed agent label'
   wait-for 'fzf did not retain exactly the agent and its ancestors' count-is 3
-  tmux send-keys -t "$window" Down Down
-  wait-for 'fzf cannot select the filtered agent beneath its headings' focus-is "pane:$CHILD_PANE"
+  wait-for 'fzf did not directly focus the matching agent beneath its headings' focus-is "pane:$CHILD_PANE"
   tmux send-keys -t "$window" C-d
   # Ctrl+D clears the query after the safe helper and reload finish.
   wait-for 'fzf delete did not reload the sessions tree' focus-is repo
@@ -279,7 +290,6 @@ EOF
   ! tmux has-session -t '=disposable-fzf' 2>/dev/null || fail 'fzf no longer deletes session rows'
   tmux send-keys -t "$window" -l 'Renamed agent label'
   wait-for 'fzf lost the tree after reload' count-is 3
-  tmux send-keys -t "$window" Down Down
   wait-for 'fzf lost the agent after reload' focus-is "pane:$CHILD_PANE"
   tmux send-keys -t "$window" Enter
   wait-for 'fzf Enter did not return' test -f "$TEMP/fzf-done"
@@ -307,8 +317,7 @@ EOF
   wait-for 'Alt+W did not open the fzf popup' test -s "$PICKER_FOCUS"
   tmux send-keys -t "$window" -l 'Renamed agent label'
   wait-for 'Alt+W search lost workspace headings' count-is 3
-  tmux send-keys -t "$window" Down Down
-  wait-for 'Alt+W cannot focus the filtered agent' focus-is "pane:$CHILD_PANE"
+  wait-for 'Alt+W cannot directly focus the filtered agent' focus-is "pane:$CHILD_PANE"
   tmux send-keys -t "$window" Enter
   wait-for 'Alt+W did not navigate its client to the agent' popup-client-is renamed-feature
   [[ "$(tmux display-message -p -t 'renamed-feature:' '#{pane_id}')" == "$CHILD_PANE" ]] || fail 'Alt+W selected the wrong pane'

@@ -93,6 +93,9 @@ pick-lines() {
   local path_field
   local sessions=false
   local footer
+  local focus=''
+  local focus_path
+  local focus_command
   local sort=(-sort)
 
   if [[ "$mode" == tmux-sessions ]]; then
@@ -198,9 +201,21 @@ pick-lines() {
           # Filtering outside fzf preserves workspace ancestors and descendants.
           # Keep the query on every animation refresh, including zero-result searches.
           options+=(--disabled)
+          focus="$(mktemp -d "${TMPDIR:-/tmp}/dev-workspace-focus.XXXXXX")"
+          printf -v focus_path '%q' "$focus"
+          printf -v focus_command 'DEV_WORKSPACE_FOCUS_DIR=%q DEV_WORKSPACE_QUERY={q} awk -F "\\t" -f %q {*f}' \
+            "$focus" "$MODULE_DIR/session-focus.awk"
+          printf '1\n' >"$focus/position"
+          : >"$focus/target"
+          printf '1\n' >"$focus/reset"
+          # Resolve focus after reload, so keys pressed during a refresh are not lost.
+          # A new query resets focus to the strongest direct match.
+          reload="$reload --focus-file $focus_path/position"
           bind+=(--bind "load:reload-sync(sleep 0.08; $reload --query {q})"
-            --bind "change:reload-sync($reload --query {q})+first"
-            --bind "ctrl-r:reload-sync($reload --query {q})")
+            --bind "change:execute-silent(printf '1\\n' > $focus_path/reset)+reload-sync($reload --query {q})"
+            --bind "ctrl-r:reload-sync($reload --query {q})"
+            --bind "focus:execute-silent(printf '%s\\n' {3} > $focus_path/target)"
+            --bind "result:transform($focus_command)+execute-silent(printf '%s\\n' {3} > $focus_path/target)")
           [[ -z "$delete" ]] || bind+=(--bind "ctrl-d:execute-silent($delete)+clear-query+reload-sync($reload --query '')")
         fi
       fi
@@ -213,7 +228,9 @@ pick-lines() {
       fi
       FZF_DEFAULT_OPTS="$FZF_OPTS" \
         fzf --ansi --no-hscroll --height="$FZF_HEIGHT" --layout=reverse --border \
-        --delimiter=$'\t' --with-nth=1,2 --prompt="$prompt" "${bind[@]}" "${options[@]}"
+        --delimiter=$'\t' --with-nth=1,2 --prompt="$prompt" "${bind[@]}" "${options[@]}" || code=$?
+      [[ -z "$focus" ]] || rm -rf -- "$focus"
+      return "$code"
       ;;
     *)
       echo "dev-workspace: unknown picker: $(picker)" >&2

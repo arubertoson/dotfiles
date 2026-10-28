@@ -415,6 +415,9 @@ tmux-filter-session-rows() {
     name = $1
     sub(/^ +/, "", name)
     sub(/ +$/, "", name)
+    depth = $7 + 0
+    breadcrumb[depth] = depth > 0 ? breadcrumb[depth - 1] " / " name : name
+    if ($3 ~ /^pane:/) name = breadcrumb[depth]
     if ($3 !~ /^pane:/) name = name " " $2
     print name "\t" $3
   }' | FZF_DEFAULT_OPTS='' FZF_DEFAULT_OPTS_FILE=/dev/null \
@@ -432,7 +435,7 @@ tmux-filter-session-rows() {
       parent[NR] = depth > 0 ? stack[depth - 1] : 0
       root[NR] = depth > 0 ? root[parent[NR]] : NR
       stack[depth] = NR
-      direct[NR] = $3 in matched
+      direct[NR] = matched[$3]
       included[NR] = direct[NR] || included[parent[NR]]
       if (included[NR]) {
         keep[NR] = 1
@@ -444,7 +447,8 @@ tmux-filter-session-rows() {
     END {
       for (rank = 1; rank <= count; rank++) {
         for (i = 1; i <= NR; i++)
-          if (keep[i] && root_rank[root[i]] == rank) print rows[i]
+          if (keep[i] && root_rank[root[i]] == rank)
+            print rows[i] "\t" (direct[i] ? direct[i] : 0)
       }
     }
   '
@@ -454,6 +458,7 @@ tmux-session-rows() {
   local frame='⠹'
   local animate=false
   local query=''
+  local focus_file=''
   local now
   local frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
 
@@ -463,6 +468,11 @@ tmux-session-rows() {
       --query)
         [[ $# -ge 2 ]] || return 1
         query="$2"
+        shift
+        ;;
+      --focus-file)
+        [[ $# -ge 2 ]] || return 1
+        focus_file="$2"
         shift
         ;;
       *) return 1 ;;
@@ -476,7 +486,10 @@ tmux-session-rows() {
 
   # Pad project names before adding the one-column glyph; byte length is not display width.
   tmux-list-sessions --compact | tmux-session-agent-rows | tmux-filter-session-rows "$query" | format-picker-rows --preserve-order |
-    awk -F '\t' -v frame="$frame" -v animate="$animate" '{
+    DEV_WORKSPACE_FOCUS_FILE="$focus_file" DEV_WORKSPACE_QUERY="$query" \
+      awk -F '\t' -v frame="$frame" -v animate="$animate" '
+    {
+      if ($8 > 0 && (!rank || $8 < rank)) { rank = $8; best = NR }
       badge = $5 == "⠹" ? frame : $5
       if (animate == "true") {
         esc=sprintf("%c", 27)
@@ -491,7 +504,17 @@ tmux-session-rows() {
         prefix = sprintf("%*s", $7 * 4, "") badge "  "
         name = substr(name, $7 * 4 + 1)
       }
+      if (animate == "true" && ENVIRON["DEV_WORKSPACE_QUERY"] != "" && !$8) {
+        prefix = sprintf("%c[2m", 27) prefix
+        name = name sprintf("%c[0m", 27)
+      }
       printf "%s%s\t%s\t%s\t%s\t%s · %s\n", prefix, name, $2, $3, $4, $4, $6
+    }
+    END {
+      if (ENVIRON["DEV_WORKSPACE_FOCUS_FILE"] != "") {
+        print (best ? best : 1) > ENVIRON["DEV_WORKSPACE_FOCUS_FILE"]
+        print ENVIRON["DEV_WORKSPACE_QUERY"] > (ENVIRON["DEV_WORKSPACE_FOCUS_FILE"] ".query")
+      }
     }'
 }
 

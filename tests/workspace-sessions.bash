@@ -98,6 +98,13 @@ legacy="$("$ROOT/scripts/dev-workspace" list-sessions)"
   fail 'noncompact session labels changed'
 
 if [[ -n "$REAL_FZF" ]]; then
+  filtered="$("$ROOT/scripts/dev-workspace" list-sessions --compact --animate \
+    --query 'document analysis' --focus-file "$TEMP/focus-position")"
+  [[ "$(<"$TEMP/focus-position")" == 2 ]] || fail 'a matching child did not outrank its context-only parent'
+  [[ "$(head -n1 <<<"$filtered")" == $'\e[2m'* ]] || fail 'a context-only parent is not dimmed'
+  [[ "$(tail -n1 <<<"$filtered")" != $'\e[2m'* ]] || fail 'the direct workspace match is dimmed'
+  [[ "$(awk -F '\t' '{print NF}' <<<"$filtered" | sort -u)" == 5 ]] || fail 'focus metadata leaked into public rows'
+
   cat >"$TEMP/bin/fzf" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -120,34 +127,42 @@ EOF
   cat >"$TEMP/bin/fzf" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-exec "$REAL_FZF" "$@" --bind 'result:execute-silent(printf "%s\n" {3} > "$PICKER_FOCUS")'
+args=()
+for arg in "$@"; do
+  if [[ "$arg" == result:* || "$arg" == focus:* ]]; then
+    arg+='+execute-silent(printf "%s\n" {3} > "$PICKER_FOCUS")'
+  fi
+  args+=("$arg")
+done
+exec "$REAL_FZF" "${args[@]}"
 EOF
   cat >"$TEMP/reload-picker" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-query="${2:-}"
-if [[ -z "$query" ]]; then
-  cat "$PICKER_ROWS"
-  exit
-fi
-FZF_DEFAULT_OPTS='' "$REAL_FZF" --filter="$query" --delimiter=$'\t' --nth=1 --no-sort <"$PICKER_ROWS" || [[ $? == 1 ]]
+source "$PICKER_ROOT/scripts/dev-workspace" help >/dev/null
+tmux-list-sessions() { cat "$PICKER_ROWS"; }
+tmux-session-agent-rows() { awk '{print}'; }
+tmux-session-rows --animate "$@"
 EOF
   cat >"$TEMP/run-picker" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 source "$1/scripts/dev-workspace" help >/dev/null
-pick-lines 'session > ' tmux-sessions 'bash "$PICKER_RELOAD"' <"$PICKER_ROWS" >"$PICKER_RESULT"
+bash "$PICKER_RELOAD" | pick-lines 'session > ' tmux-sessions 'bash "$PICKER_RELOAD"' >"$PICKER_RESULT"
 EOF
   export PICKER_RELOAD="$TEMP/reload-picker"
+  export PICKER_ROOT="$ROOT"
   export PICKER_ROWS="$TEMP/picker-rows"
   export PICKER_FOCUS="$TEMP/picker-focus"
   export PICKER_RESULT="$TEMP/picker-result"
   printf '%s\n' \
-    $'   feat-session-analyze\tgithub.com/arubertoson/silicon-housekeeping/.workspace\tfeature\t/tmp/feature' \
-    $'   main\t \tmain\t/tmp/main' >"$PICKER_ROWS"
+    $'job-applications\tgithub.com/arubertoson\trepo\t/tmp/repo\t \tNo agents\t0' \
+    $'    ref-google-interaction\tjob-applications/.workspaces\tfeature\t/tmp/feature\t \tNo agents\t1' \
+    $'        implement apply base\trunning\tpane:%123\t/tmp/feature\t⠹\trunning\t2' \
+    $'main\t \tmain\t/tmp/main\t \tNo agents\t0' >"$PICKER_ROWS"
   window="$(tmux new-window -d -P -F '#{window_id}' -t '=main' -n picker \
     -e DEV_WORKSPACE_PICKER=fzf -e PICKER_ROWS="$PICKER_ROWS" -e PICKER_RELOAD="$PICKER_RELOAD" \
-    -e PICKER_FOCUS="$PICKER_FOCUS" -e PICKER_RESULT="$PICKER_RESULT" \
+    -e PICKER_FOCUS="$PICKER_FOCUS" -e PICKER_RESULT="$PICKER_RESULT" -e PICKER_ROOT="$ROOT" \
     "bash '$TEMP/run-picker' '$ROOT'")"
 
   wait-picker-target() {
@@ -162,19 +177,50 @@ EOF
     fail "fzf did not focus $target"
   }
 
-  wait-picker-target feature
+  wait-picker-target repo
   tmux send-keys -t "$window" -l main
   wait-picker-target main
   tmux send-keys -t "$window" C-u
+  wait-picker-target repo
+  tmux send-keys -t "$window" -l ref
   wait-picker-target feature
-  tmux send-keys -t "$window" -l main
+  tmux send-keys -t "$window" Down
+  wait-picker-target 'pane:%123'
+  sleep 0.4
+  [[ "$(<"$PICKER_FOCUS")" == 'pane:%123' ]] || fail 'animation reset a manually selected agent'
+  tmux send-keys -t "$window" C-r
+  sleep 0.4
+  [[ "$(<"$PICKER_FOCUS")" == 'pane:%123' ]] || fail 'refresh reset a manually selected agent'
+  awk '{ rows[NR] = $0 } END { print rows[4]; for (i = 1; i < 4; i++) print rows[i] }' \
+    "$PICKER_ROWS" >"$PICKER_ROWS.next"
+  mv "$PICKER_ROWS.next" "$PICKER_ROWS"
+  tmux send-keys -t "$window" C-u
   wait-picker-target main
+  tmux send-keys -t "$window" Down Down Down
+  wait-picker-target 'pane:%123'
+  # Restore recency order while the selected target moves to a different row.
+  awk '{ rows[NR] = $0 } END { for (i = 2; i <= 4; i++) print rows[i]; print rows[1] }' \
+    "$PICKER_ROWS" >"$PICKER_ROWS.next"
+  mv "$PICKER_ROWS.next" "$PICKER_ROWS"
+  sleep 0.5
+  [[ "$(<"$PICKER_FOCUS")" == 'pane:%123' ]] || fail 'a reordered refresh lost the stable selected target'
+  tmux send-keys -t "$window" C-u
+  tmux send-keys -t "$window" -l implement
+  wait-picker-target 'pane:%123'
+  tmux send-keys -t "$window" C-u
+  tmux send-keys -t "$window" -l nonexistent
+  sleep 0.3
+  tmux send-keys -t "$window" C-u
+  tmux send-keys -t "$window" -l ref
+  wait-picker-target feature
+  tmux send-keys -t "$window" -l imp
+  wait-picker-target 'pane:%123'
   tmux send-keys -t "$window" Enter
   for _ in {1..100}; do
     [[ -s "$PICKER_RESULT" ]] && break
     sleep 0.05
   done
-  [[ "$(cut -f3 "$PICKER_RESULT")" == main ]] || fail 'query reload lost its session target'
+  [[ "$(cut -f3 "$PICKER_RESULT")" == 'pane:%123' ]] || fail 'combined workspace and agent query did not select the Pi pane'
 fi
 
 cat >"$TEMP/bin/rofi" <<'EOF'
