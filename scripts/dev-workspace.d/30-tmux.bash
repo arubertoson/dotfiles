@@ -19,6 +19,7 @@ tmux-agent-center-layout() {
   local panes
   local window
 
+  [[ "$(tmux display-message -p -t "$center" '#{window_name}')" != dev ]] || return 0
   existing="$(tmux display-message -p -t "$center" '#{@dev_workspace_agent_center}' 2>/dev/null || true)"
   if [[ "$existing" != 1 ]]; then
     panes="$(tmux list-panes -t "$center" -F '#{pane_id}')"
@@ -27,6 +28,7 @@ tmux-agent-center-layout() {
   fi
 
   window="$(tmux display-message -p -t "$center" '#{window_id}')"
+  tmux set-option -w -t "$window" @dev_workspace_panes 1
   tmux-agent-resize-layout "$window"
   tmux select-pane -t "$center"
 }
@@ -39,64 +41,15 @@ tmux-agent-focus() {
 
   gutter="$(tmux display-message -p -t "$1" '#{@dev_workspace_agent_gutter}' 2>/dev/null || true)"
   [[ "$gutter" == 1 ]] || return 0
-  center="$(tmux list-panes -t "$1" -F '#{pane_id} #{@dev_workspace_agent_center}' |
-    awk '$2 == 1 { print $1; exit }')"
+  center="$(tmux list-panes -t "$1" -F '#{pane_id} #{@dev_workspace_agent_gutter}' |
+    awk '$2 != 1 { print $1; exit }')"
   [[ "$center" =~ ^%[0-9]+$ ]] || return 0
   tmux select-pane -t "$center"
 }
 
 tmux-agent-resize-layout() {
   [[ $# == 1 && "$1" =~ ^@[0-9]+$ ]] || return 0
-
-  local window="$1"
-  local width
-  local min_width=120
-  local gutter_width
-  local max_gutter_width
-  local center
-  local gutter
-  local zoomed
-  local -a gutters=()
-
-  zoomed="$(tmux display-message -p -t "$window" '#{window_zoomed_flag}')"
-  [[ "$zoomed" == 1 ]] && return 0
-  width="$(tmux display-message -p -t "$window" '#{window_width}')"
-  center="$(tmux list-panes -t "$window" -F '#{pane_id} #{@dev_workspace_agent_center}' |
-    awk '$2 == 1 { print $1; exit }')"
-  [[ "$center" =~ ^%[0-9]+$ ]] || return 0
-  mapfile -t gutters < <(tmux list-panes -t "$window" -F '#{pane_id} #{@dev_workspace_agent_gutter}' |
-    awk '$2 == 1 { print $1 }')
-
-  gutter_width=0
-  if ((width >= min_width)); then
-    gutter_width=$(((width - min_width - 2) / 2))
-    max_gutter_width=$((width / 5))
-    ((gutter_width > max_gutter_width)) && gutter_width="$max_gutter_width"
-  fi
-
-  if ((gutter_width < 1)); then
-    for gutter in "${gutters[@]}"; do
-      tmux kill-pane -t "$gutter"
-    done
-    tmux select-pane -t "$center"
-    return 0
-  fi
-
-  if ((${#gutters[@]} != 2)); then
-    for gutter in "${gutters[@]}"; do
-      tmux kill-pane -t "$gutter"
-    done
-    gutters=()
-    gutters+=("$(tmux split-window -h -b -l "$gutter_width" -P -F '#{pane_id}' -t "$center" 'exec sleep infinity')")
-    tmux set-option -p -t "${gutters[0]}" @dev_workspace_agent_gutter 1
-    gutters+=("$(tmux split-window -h -l "$gutter_width" -P -F '#{pane_id}' -t "$center" 'exec sleep infinity')")
-    tmux set-option -p -t "${gutters[1]}" @dev_workspace_agent_gutter 1
-    tmux select-pane -t "$center"
-    return 0
-  fi
-
-  tmux resize-pane -t "${gutters[0]}" -x "$gutter_width" 2>/dev/null || true
-  tmux resize-pane -t "${gutters[1]}" -x "$gutter_width" 2>/dev/null || true
+  tmux-pane-action layout "$1"
 }
 
 tmux-agent-center-window() {
@@ -121,6 +74,7 @@ tmux-agent-reset-layout() {
   local gutter
   local panes
 
+  tmux set-option -w -u -t "$center" @dev_workspace_panes
   panes="$(tmux list-panes -t "$center" -F '#{pane_id} #{@dev_workspace_agent_gutter}')"
   while read -r gutter marker; do
     [[ "$marker" == 1 && "$gutter" =~ ^%[0-9]+$ ]] || continue
@@ -697,6 +651,11 @@ tmux-dispatch() {
     agent-visit)
       shift
       agent-visit "$@"
+      ;;
+    pane-add | pane-remove | pane-navigate | pane-layout)
+      local action="${1#pane-}"
+      shift
+      tmux-pane-action "$action" "$@"
       ;;
     agent-focus)
       shift
