@@ -301,4 +301,46 @@ layout="$(value "$manual" window_layout)"
 workspace pane-layout "$(value "$manual" window_id)"
 [[ "$(value "$manual" window_layout)" == "$layout" ]] || fail 'automation rearranged a manual dev layout'
 
+# The Pi extension preflights capacity, then requests an argv-preserving launch.
+runner="$TEMP/bin/fork-runner"
+cat >"$runner" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+output="$1"
+shift
+printf '%s\0' "$PWD" "$@" >"$output"
+exec sleep 120
+EOF
+chmod +x "$runner"
+origin="$(tmux new-window -t "$SESSION" -n fork-test -P -F '#{pane_id}' 'exec sleep 120')"
+before="$(value "$origin" window_layout)"
+workspace pane-can-add "$origin"
+[[ "$(value "$origin" window_layout)" == "$before" ]] || fail 'capacity check changed the layout'
+output="$TEMP/fork argv"
+fork_path="$TEMP/a fork's session.jsonl"
+prompt="-review; touch '$TEMP/should-not-exist'"
+opened="$(workspace pane-run "$origin" "$TEMP/project/with spaces" "$runner" "$output" --session "$fork_path" -- "$prompt")"
+[[ "$opened" =~ ^%[0-9]+$ && "$(value "$(value "$origin" window_id)" pane_id)" == "$opened" ]] ||
+  fail 'pane-run did not report and focus its new pane'
+for _ in {1..100}; do
+  [[ -f "$output" ]] && break
+  sleep 0.02
+done
+printf '%s\0' "$TEMP/project/with spaces" --session "$fork_path" -- "$prompt" >"$TEMP/expected argv"
+cmp "$output" "$TEMP/expected argv" || fail 'pane-run changed launch arguments'
+[[ ! -e "$TEMP/should-not-exist" ]] || fail 'pane-run interpreted prompt text as shell code'
+workspace pane-add "$origin"
+workspace pane-can-add "$origin"
+workspace pane-add "$origin"
+code=0
+workspace pane-run "$origin" "$TEMP/project" "$runner" "$TEMP/rejected" 2>"$TEMP/refusal" || code=$?
+[[ "$code" == 2 && ! -e "$TEMP/rejected" ]] || fail 'pane-run bypassed a capacity change after preflight'
+grep -q 'four-pane limit' "$TEMP/refusal" || fail 'capacity refusal did not explain the limit'
+code=0
+workspace pane-can-add "$manual" 2>/dev/null || code=$?
+[[ "$code" == 2 ]] || fail 'capacity check allowed a manually managed dev window'
+code=0
+workspace pane-run %999999 "$TEMP/project" "$runner" "$TEMP/stale" 2>/dev/null || code=$?
+[[ "$code" == 2 && ! -e "$TEMP/stale" ]] || fail 'pane-run launched from a stale source pane'
+
 printf '[workspace-panes] OK\n'

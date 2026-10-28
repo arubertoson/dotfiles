@@ -156,6 +156,20 @@ tmux-pane-navigate() {
   [[ -z "$target" ]] || tmux select-pane -t "$target"
 }
 
+tmux-pane-check-add() {
+  local command
+  command="$(tmux display-message -p -t "$1" '#{pane_current_command}')"
+  if (($3 >= 4)); then
+    printf 'dev-workspace: four-pane limit reached\n' >&2
+    return 2
+  fi
+  if [[ "$(tmux display-message -p -t "$2" '#{window_name}')" == dev ||
+  "${command##*/}" == nvim ]]; then
+    printf 'dev-workspace: this pane is manually managed\n' >&2
+    return 2
+  fi
+}
+
 # Server-scoped locking also covers hooks and works on remote tmux servers.
 tmux-pane-action() (
   local action="${1:-layout}"
@@ -163,24 +177,45 @@ tmux-pane-action() (
   local window lock path created command
   local -a launch=()
   local -a panes=()
+  if [[ "$action" == run ]]; then
+    [[ $# -ge 4 && -d "$3" && -n "$4" ]] || {
+      printf 'usage: dev-workspace pane-run PANE DIRECTORY COMMAND [ARG...]\n' >&2
+      return 2
+    }
+  fi
   [[ -n "$pane" ]] || pane="$(tmux display-message -p '#{pane_id}')"
   [[ "$pane" =~ ^(%|@)[0-9]+$ ]] || return 1
-  window="$(tmux display-message -p -t "$pane" '#{window_id}' 2>/dev/null)" || return 0
-  [[ "$window" =~ ^@[0-9]+$ ]] || return 0
+  window="$(tmux display-message -p -t "$pane" '#{window_id}' 2>/dev/null)" || {
+    [[ "$action" == layout ]] && return 0
+    printf 'dev-workspace: source pane is no longer available\n' >&2
+    return 2
+  }
+  [[ "$window" =~ ^@[0-9]+$ ]] || return 2
   lock="dev-workspace-panes-${window}"
   tmux wait-for -L "$lock"
   trap 'tmux wait-for -U "$lock" 2>/dev/null || true' EXIT
   trap 'exit 130' INT
   trap 'exit 143' TERM
   # A queued hook may refer to a window which has since been closed.
-  tmux list-panes -t "$window" >/dev/null 2>&1 || return 0
+  if ! tmux list-panes -t "$window" >/dev/null 2>&1; then
+    [[ "$action" == layout ]] && return 0
+    printf 'dev-workspace: source window is no longer available\n' >&2
+    return 2
+  fi
 
   if [[ "$action" == layout ]]; then
     tmux-pane-render "$window"
     return
   fi
   [[ "$pane" == %* ]] || return 1
-  [[ "$(tmux display-message -p -t "$pane" '#{@dev_workspace_agent_gutter}')" != 1 ]] || return 0
+  if [[ "$(tmux display-message -p -t "$pane" '#{window_id}' 2>/dev/null)" != "$window" ]]; then
+    printf 'dev-workspace: source pane moved or closed\n' >&2
+    return 2
+  fi
+  if [[ "$(tmux display-message -p -t "$pane" '#{@dev_workspace_agent_gutter}')" == 1 ]]; then
+    [[ "$action" == can-add || "$action" == run ]] && return 2
+    return 0
+  fi
   mapfile -t panes < <(tmux-real-panes "$window")
   case "$action" in
     navigate)
@@ -188,15 +223,23 @@ tmux-pane-action() (
       tmux-pane-navigate "$pane" "$3"
       return
       ;;
-    add)
-      (("${#panes[@]}" < 4)) || return 0
-      [[ "$(tmux display-message -p -t "$window" '#{window_name}')" != dev ]] || return 0
-      command="$(tmux display-message -p -t "$pane" '#{pane_current_command}')"
-      case "${command##*/}" in
-        nvim) return 0 ;;
-        pi) launch=('exec pi') ;;
-      esac
-      path="$(tmux display-message -p -t "$pane" '#{pane_current_path}')"
+    add | can-add | run)
+      if [[ "$action" == add ]]; then
+        tmux-pane-check-add "$pane" "$window" "${#panes[@]}" 2>/dev/null || return 0
+      fi
+      if [[ "$action" != add ]]; then
+        tmux-pane-check-add "$pane" "$window" "${#panes[@]}" || return 2
+      fi
+      [[ "$action" != can-add ]] || return 0
+      if [[ "$action" == run ]]; then
+        path="$3"
+        launch=("${@:4}")
+      fi
+      if [[ "$action" == add ]]; then
+        command="$(tmux display-message -p -t "$pane" '#{pane_current_command}')"
+        [[ "${command##*/}" != pi ]] || launch=('exec pi')
+        path="$(tmux display-message -p -t "$pane" '#{pane_current_path}')"
+      fi
       # Use the full window before splitting a possibly zoomed pane.
       if [[ "$(tmux display-message -p -t "$pane" '#{window_zoomed_flag}')" == 1 ]]; then
         tmux resize-pane -Z -t "$pane"
@@ -204,6 +247,7 @@ tmux-pane-action() (
       created="$(tmux split-window -d -v -t "$pane" -c "$path" -P -F '#{pane_id}' "${launch[@]}")" || return 1
       tmux set-option -w -t "$window" @dev_workspace_panes 1
       tmux select-pane -t "$created"
+      [[ "$action" != run ]] || printf '%s\n' "$created"
       ;;
     remove)
       (("${#panes[@]}" > 1)) || return 0

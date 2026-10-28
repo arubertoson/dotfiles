@@ -4,6 +4,8 @@ usage: dev-workspace [project|zoxide|sessions|agents|windows|toggle|cleanup]
        dev-workspace [slot SLOT|new SLOT|open-path PATH]
        dev-workspace pane-add|pane-remove [PANE]
        dev-workspace pane-navigate PANE next|previous|left|right|up|down
+       dev-workspace pane-can-add PANE
+       dev-workspace pane-run PANE DIRECTORY COMMAND [ARG...]
        dev-workspace [list-agents|agent-visit SERVER PANE]
 
 Environment:

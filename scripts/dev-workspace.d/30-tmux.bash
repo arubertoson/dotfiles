@@ -652,7 +652,7 @@ tmux-dispatch() {
       shift
       agent-visit "$@"
       ;;
-    pane-add | pane-remove | pane-navigate | pane-layout)
+    pane-add | pane-remove | pane-navigate | pane-layout | pane-can-add | pane-run)
       local action="${1#pane-}"
       shift
       tmux-pane-action "$action" "$@"
