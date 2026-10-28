@@ -58,6 +58,4 @@ dev-clone() {
     git clone "$clone" "$dest" || return 1
     echo "cloned repo to: $dest"
   fi
-
-  cd "$dest"
 }
