@@ -4,7 +4,8 @@ PIP_DISABLE_PIP_VERSION_CHECK = "1"
 
 [tools]
 # Floating selectors: update deliberately with `mise upgrade`.
-pi = "latest"
+"npm:@earendil-works/pi-coding-agent" = "latest"
+claude = "latest"
 codex = "latest"
 miller = "latest"
 jujutsu = "latest"
