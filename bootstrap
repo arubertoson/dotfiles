@@ -39,8 +39,8 @@ adopt-repo-location() {
   root="$(realpath -m "$ROOT")"
   dev="$(realpath -m "$DEV_DIR")"
 
-  [ "${DOTFILES_ADOPT_REPO:-1}" = 1 ] || return
-  [ "$root" != "$dev" ] || return
+  [ "${DOTFILES_ADOPT_REPO:-1}" = 1 ] || return 0
+  [ "$root" != "$dev" ] || return 0
 
   if [ -L "$DEV_DIR" ] && [ "$(readlink -f "$DEV_DIR")" = "$root" ]; then
     log "Removing old canonical symlink: $DEV_DIR"
@@ -163,7 +163,7 @@ setup-shell() {
   fi
 
   current="$(getent passwd "$user" 2>/dev/null | awk -F: '{print $NF}')"
-  [ "$current" != "$zsh" ] || return
+  [ "$current" != "$zsh" ] || return 0
 
   if ! sudo chsh -s "$zsh" "$user"; then
     [ "$DOT_WSL" != 1 ] || {

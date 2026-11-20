@@ -1,2 +1,4 @@
 # Base tools for Arch-based systems.
 base-devel
+github-cli
+zsh

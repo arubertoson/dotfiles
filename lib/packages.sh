@@ -53,6 +53,13 @@ install-system-packages() {
   esac
 
   packages="$(_dot_package_lines "${files[@]}")"
+  local clipboard=''
+  if [ -n "${WAYLAND_DISPLAY:-}" ]; then
+    command -v wl-copy >/dev/null 2>&1 || clipboard=wl-clipboard
+  elif [ -n "${DISPLAY:-}" ]; then
+    command -v xclip >/dev/null 2>&1 || command -v xsel >/dev/null 2>&1 || clipboard=xclip
+  fi
+  [ -z "$clipboard" ] || packages="${packages:+$packages$'\n'}$clipboard"
   [ -n "$packages" ] || return 0
 
   case "${DOT_PACKAGE_MANAGER:-}" in
