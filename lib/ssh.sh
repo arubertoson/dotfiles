@@ -96,7 +96,7 @@ verify-github-ssh() {
   local host="$1"
   local output
 
-  output="$(ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -T "git@$host" 2>&1 || true)"
+  output="$(ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new -T "git@$host" 2>&1 || true)"
   if [[ "$output" == *"successfully authenticated"* ]]; then
     echo "[ssh] GitHub SSH access verified through $host"
     return
@@ -112,6 +112,10 @@ setup-github-ssh() {
   local profile="${2:-home}"
   local host="github.com"
   local key="$HOME/.ssh/id_ed25519_github"
+  local public
+  local choice
+  local index
+  local keys=()
 
   if [ "$profile" = work ]; then
     host="github.work"
@@ -121,10 +125,48 @@ setup-github-ssh() {
     email="${email:-${GITHUB_EMAIL_HOME:-}}"
   fi
 
-  email="${email:-${USER:-user}@$(hostname)}"
+  if verify-github-ssh "$host" >/dev/null 2>&1; then
+    echo "[ssh] Reusing working GitHub SSH access through $host"
+    return 0
+  fi
+
+  echo "[ssh] GitHub SSH access through $host is unavailable"
+  if [ ! -t 0 ]; then
+    echo "[ssh] Run interactively: ./bootstrap ssh '$email' '$profile'" >&2
+    return 1
+  fi
+
+  for public in "$HOME"/.ssh/*.pub; do
+    [ -f "$public" ] && [ -f "${public%.pub}" ] || continue
+    keys+=("${public%.pub}")
+  done
+
+  echo "[ssh] Choose a key to configure and register with GitHub:"
+  for index in "${!keys[@]}"; do
+    printf '  %s) %s\n' "$((index + 1))" "${keys[$index]}"
+  done
+  printf '  0) Generate %s (empty passphrase)\n' "$key"
+  read -r -p 'Key number (Enter to cancel): ' choice
+  case "$choice" in
+    0)
+      if [ -e "$key" ] || [ -e "$key.pub" ]; then
+        echo "[ssh] Key path already exists; select it above instead" >&2
+        return 1
+      fi
+      ;;
+    *)
+      if [[ ! "$choice" =~ ^[1-9][0-9]{0,3}$ ]] || ((choice > ${#keys[@]})); then
+        echo "[ssh] Cancelled; no SSH configuration changed" >&2
+        return 1
+      fi
+      key="${keys[$((choice - 1))]}"
+      ;;
+  esac
+
+  email="${email:-${USER:-user}@$(uname -n)}"
   ensure-ssh-directory
   ensure-github-key "$email" "$key"
   configure-github-host "$host" "$key"
-  register-github-key "$key" "dotfiles-$(hostname)-$profile"
+  register-github-key "$key" "dotfiles-$(uname -n)-$profile"
   verify-github-ssh "$host"
 }

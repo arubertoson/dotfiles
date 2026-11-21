@@ -66,6 +66,7 @@ status:
 
 smoke:
   @./tests/dev-clone.bash
+  @./tests/github-ssh.bash
   @./tests/apply-smoke.bash
   @./tests/tmux-ssh-environment.bash
   @./tests/workspace-picker.bash

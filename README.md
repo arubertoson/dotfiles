@@ -79,10 +79,14 @@ Set `DOTFILES_REPO_DIR` to choose another path, or set
 `DOTFILES_ADOPT_REPO=0` to keep the checkout where it is.
 
 Bootstrap installs missing packages without a full system update, installs
-mise and its tools, applies managed dotfiles and scripts, and sets Zsh as the
-login shell. It can be run repeatedly. SSH keys and the separate Neovim
-configuration are explicit setup operations, not part of bootstrap. Run
-`./bootstrap help` to see the available commands; `just` provides aliases.
+mise and its tools, applies managed dotfiles and scripts, clones and links the
+separate Neovim configuration, and sets Zsh as the login shell. Neovim setup
+reuses working GitHub SSH access. If SSH access fails, setup requires an
+interactive choice to reuse an existing key or generate and register a new one;
+it does not silently create another key. Existing Neovim
+checkouts are left unchanged; conflicting configuration directories are not
+replaced. Bootstrap can be run repeatedly. Run `./bootstrap help` to see the
+available commands; `just` provides aliases.
 
 Copy `.env.example` to `~/.env` only when machine-local values are needed, then
 run `chmod 600 ~/.env`. Interactive Zsh shells export these values to commands

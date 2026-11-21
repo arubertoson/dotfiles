@@ -252,6 +252,7 @@ bootstrap-machine() {
   run "Generating completions" generate-completions
   run "Linking dotfiles" apply-dotfiles
   run "Linking scripts" link-scripts
+  run "Configuring Neovim" setup-nvim
   run "Setting the login shell" setup-shell
   log "Setup complete. Run 'just status' to check current state."
 }
