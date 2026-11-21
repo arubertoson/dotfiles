@@ -18,7 +18,7 @@ amp = "0.0.1790150436-gfe2bc8"
 # Rolling releases that are intentionally updated on their own cadence.
 node = "lts"
 rust = "stable"
-"github:neovim/neovim" = { version = "nightly", extract_all = "true", bin_path = "nvim-linux-x86_64/bin" }
+"github:neovim/neovim" = { version = "nightly", bin_path = "nvim-linux-x86_64/bin" }
 
 # Date-based or fixed versions; bump deliberately.
 python = "3.15.1"
@@ -38,9 +38,9 @@ tree-sitter = "0.27.0"
 "github:XAMPPRocky/tokei"	 = "12.1.2"
 "github:jdx/usage"		 = "2.2.2"
 "github:chmln/sd"		 = "1.0.0"
-"github:charmbracelet/glow"	 = { version = "2.1.2", extract_all = "true" }
+"github:charmbracelet/glow"	 = "2.1.2"
 # "github:astral-sh/uv"            = { version = "0.11.17", extract_all = "true" }
-"github:BurntSushi/ripgrep"      = { version = "14.1.1", exe = "rg" }
+"github:BurntSushi/ripgrep"      = "14.1.1"
 "github:sharkdp/fd"              = "10.3.0"
 "github:eza-community/eza"       = "0.23.4"
 "github:sharkdp/bat"             = "0.25.0"
