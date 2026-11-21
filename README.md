@@ -31,6 +31,18 @@ Zsh is managed as:
 ~/.config/zsh -> <repo>/config/zsh
 ```
 
+## Cloning projects
+
+```sh
+dev-clone github.com/arubertoson/project           # personal development (home)
+dev-clone --library github.com/owner/project       # reference / source reading
+dev-clone --work github.com/organization/project   # work development
+```
+
+Clones go to `${XDG_DEV_HOME:-$HOME/dev}/<location>/<provider>/<owner>/<repo>`.
+Personal Git identity applies under `~/dev/home/`; configure `config/git/work`
+with your work name and email before committing under `~/dev/work/`.
+
 ## Profiles
 
 Bootstrap detects the machine profile automatically. Override detection when

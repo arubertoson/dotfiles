@@ -3,18 +3,31 @@
 dev-clone() {
   emulate -L zsh
 
-  local location="library"
-  local remote
+  local location="home"
 
-  if [[ $# -eq 1 ]]; then
-    remote="$1"
-  elif [[ $# -eq 2 ]]; then
-    location="$1"
-    remote="$2"
-  else
-    echo "usage: dev-clone [location] <remote>" >&2
+  case "${1:-}" in
+    --library|--work)
+      location="${1#--}"
+      shift
+      ;;
+    -h|--help)
+      echo "usage: dev-clone [--library|--work] <remote>"
+      echo "Defaults to home; --library is for reference clones, --work for work projects."
+      return 0
+      ;;
+    --) shift ;;
+    -*)
+      echo "unknown option: $1" >&2
+      return 1
+      ;;
+  esac
+
+  if [[ $# -ne 1 || "$1" == -* ]]; then
+    echo "usage: dev-clone [--library|--work] <remote>" >&2
     return 1
   fi
+
+  local remote="$1"
 
   local url="${remote%.git}"
   local provider user repo rest clone
