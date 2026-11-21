@@ -157,6 +157,11 @@ copy-to-clipboard() {
   local clipboard
   local -a clipboards=()
 
+  # Let the server update the terminal clipboard independently of popup lifetime.
+  if [[ -n "${TMUX:-}" ]] && tmux set-buffer -w -- "$path"; then
+    return 0
+  fi
+
   if command -v clip.exe >/dev/null 2>&1; then
     clipboards+=("$(command -v clip.exe)")
   elif [[ -x /mnt/c/Windows/System32/clip.exe ]]; then
